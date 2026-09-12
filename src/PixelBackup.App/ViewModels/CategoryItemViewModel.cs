@@ -1,4 +1,5 @@
 using PixelBackup.App.Mvvm;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Util;
 
@@ -129,9 +130,9 @@ public sealed class CategoryItemViewModel : ObservableObject
 
     public string SummaryText => Analyzed
         ? ItemCount == 0
-            ? "nichts gefunden"
-            : $"{Humanize.Count(ItemCount, "Element", "Elemente")} · {Humanize.Bytes(Bytes)}"
-        : "noch nicht analysiert";
+            ? Loc.Tr("nichts gefunden", "nothing found")
+            : $"{Humanize.Items(ItemCount)} · {Humanize.Bytes(Bytes)}"
+        : Loc.Tr("noch nicht analysiert", "not analysed yet");
 
     public void ApplyAnalysis(int itemCount, long bytes)
     {
@@ -139,6 +140,9 @@ public sealed class CategoryItemViewModel : ObservableObject
         Bytes = bytes;
         Analyzed = true;
     }
+
+    /// <summary>Nach einem Sprachwechsel alle Beschriftungen neu abfragen.</summary>
+    public void RefreshTexts() => OnPropertyChanged(string.Empty);
 
     public void ResetAnalysis()
     {

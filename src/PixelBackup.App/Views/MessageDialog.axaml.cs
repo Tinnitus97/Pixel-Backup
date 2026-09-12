@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using PixelBackup.Core.Localization;
 
 namespace PixelBackup.App.Views;
 
@@ -10,7 +11,9 @@ public sealed class MessageDialogContent
 
     public bool IsConfirm { get; init; }
 
-    public string OkText => IsConfirm ? "Fortfahren" : "OK";
+    public string OkText => IsConfirm ? Loc.Tr("Fortfahren", "Continue") : "OK";
+
+    public string CancelText => Loc.Tr("Abbrechen", "Cancel");
 }
 
 public partial class MessageDialog : Window

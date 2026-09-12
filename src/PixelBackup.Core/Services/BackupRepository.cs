@@ -1,4 +1,5 @@
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 
 namespace PixelBackup.Core.Services;
@@ -48,7 +49,7 @@ public sealed class BackupRepository
         if (Directory.Exists(set.Directory))
         {
             Directory.Delete(set.Directory, recursive: true);
-            _log.Info($"Sicherungssatz gelöscht: {set.Directory}");
+            _log.Info(Loc.Tr($"Sicherungssatz gelöscht: {set.Directory}", $"Backup set deleted: {set.Directory}"));
         }
 
         var archive = set.Directory.TrimEnd(Path.DirectorySeparatorChar) + ".zip";
@@ -84,7 +85,9 @@ public sealed class BackupRepository
             }
             catch (IOException ex)
             {
-                _log.Warn($"Alter Satz {set.Name} konnte nicht gelöscht werden: {ex.Message}");
+                _log.Warn(Loc.Tr(
+                    $"Alter Satz {set.Name} konnte nicht gelöscht werden: {ex.Message}",
+                    $"Old set {set.Name} could not be deleted: {ex.Message}"));
             }
         }
 

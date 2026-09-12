@@ -1,3 +1,5 @@
+using PixelBackup.Core.Localization;
+
 namespace PixelBackup.Core.Adb;
 
 /// <summary>Art des Root-Zugriffs, den adb auf dem Gerät hat.</summary>
@@ -48,13 +50,15 @@ public sealed class AdbDevice
 
     public string StateText => State switch
     {
-        AdbDeviceState.Device => "verbunden",
-        AdbDeviceState.Unauthorized => "nicht autorisiert – bitte USB-Debugging am Gerät bestätigen",
-        AdbDeviceState.Offline => "offline",
-        AdbDeviceState.Recovery => "Recovery-Modus",
-        AdbDeviceState.Sideload => "Sideload-Modus",
-        AdbDeviceState.Bootloader => "Bootloader/Fastboot",
-        _ => "unbekannt"
+        AdbDeviceState.Device => Loc.Tr("verbunden", "connected"),
+        AdbDeviceState.Unauthorized => Loc.Tr(
+            "nicht autorisiert – bitte USB-Debugging am Gerät bestätigen",
+            "unauthorised – please confirm USB debugging on the device"),
+        AdbDeviceState.Offline => Loc.Tr("offline", "offline"),
+        AdbDeviceState.Recovery => Loc.Tr("Recovery-Modus", "recovery mode"),
+        AdbDeviceState.Sideload => Loc.Tr("Sideload-Modus", "sideload mode"),
+        AdbDeviceState.Bootloader => Loc.Tr("Bootloader/Fastboot", "bootloader/fastboot"),
+        _ => Loc.Tr("unbekannt", "unknown")
     };
 
     public override string ToString() => $"{DisplayName} ({Serial}) – {StateText}";

@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PixelBackup.App.Views.ComponentsView">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <StackPanel Grid.Row="0" Spacing="2">
+      <TextBlock Text="{Binding Title}" Classes="h1" />
+      <TextBlock Text="{Binding PageHint}" Classes="hint" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1" Margin="0,14,0,0">
+      <StackPanel>
+
+        <!-- Plattform-Tools -->
+        <Border Classes="card">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Adb.Glyph}"
+                       FontSize="26"
+                       Margin="0,0,16,0"
+                       VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="1" Spacing="3">
+              <TextBlock Text="{Binding Adb.Name}" FontWeight="SemiBold" FontSize="15" />
+              <TextBlock Text="{Binding Adb.StateText}" Classes="hint" />
+              <TextBlock Text="{Binding Adb.Message}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
+                <TextBlock Text="{Binding LabelVersion}" Classes="hint" FontSize="12" />
+                <TextBlock Text="{Binding Adb.VersionText}" FontSize="12" />
+                <TextBlock Text="{Binding LabelLocation}" Classes="hint" FontSize="12" />
+                <TextBlock Text="{Binding Adb.Location}" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="420" />
+              </StackPanel>
+            </StackPanel>
+
+            <Button Grid.Column="2"
+                    Content="{Binding LabelInstallAdb}"
+                    Command="{Binding InstallAdbCommand}"
+                    Classes="accent"
+                    VerticalAlignment="Center"
+                    MinWidth="200" />
+          </Grid>
+        </Border>
+
+        <!-- USB-Treiber -->
+        <Border Classes="card">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding UsbDriver.Glyph}"
+                       FontSize="26"
+                       Margin="0,0,16,0"
+                       VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="1" Spacing="3">
+              <TextBlock Text="{Binding UsbDriver.Name}" FontWeight="SemiBold" FontSize="15" />
+              <TextBlock Text="{Binding UsbDriver.StateText}" Classes="hint" />
+              <TextBlock Text="{Binding UsbDriver.Message}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0" IsVisible="{Binding IsWindows}">
+                <TextBlock Text="{Binding LabelVersion}" Classes="hint" FontSize="12" />
+                <TextBlock Text="{Binding UsbDriver.VersionText}" FontSize="12" />
+              </StackPanel>
+            </StackPanel>
+
+            <Button Grid.Column="2"
+                    Content="{Binding LabelInstallDriver}"
+                    Command="{Binding InstallDriverCommand}"
+                    IsVisible="{Binding IsWindows}"
+                    VerticalAlignment="Center"
+                    MinWidth="200" />
+          </Grid>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding SummaryText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding SourceHint}" Classes="hint" FontSize="12" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="2" Spacing="10" Margin="0,12,0,6">
+      <Border Classes="card" Margin="0" IsVisible="{Binding Components.IsBusy}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding Components.BusyText}" FontWeight="SemiBold" />
+          <ProgressBar Height="8" Minimum="0" Maximum="100" Value="{Binding Components.Percent}" />
+        </StackPanel>
+      </Border>
+
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button Content="{Binding LabelRefresh}" Command="{Binding RefreshCommand}" />
+        <TextBlock Text="{Binding LastCheckText}" VerticalAlignment="Center" Classes="hint" />
+      </StackPanel>
+    </StackPanel>
+
+  </Grid>
+
+</UserControl>

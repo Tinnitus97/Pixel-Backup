@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using PixelBackup.App.Mvvm;
 using PixelBackup.App.Services;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Util;
 
@@ -21,14 +22,14 @@ public sealed class BackupViewModel : ViewModelBase
     private bool _removeDeletedFiles;
     private string _archivePassword = string.Empty;
     private string _resultText = string.Empty;
-    private string _planSummary = "Noch nichts analysiert.";
+    private string _planSummary = Loc.Tr("Noch nichts analysiert.", "Nothing analysed yet.");
     private string _targetDescription = string.Empty;
 
     public BackupViewModel(AppSession session)
     {
         _session = session;
-        Title = "Sichern";
         Icon = "💾";
+        UpdateTitle();
 
         _incremental = session.Settings.IncrementalByDefault;
         _computeHashes = session.Settings.ComputeHashes;
@@ -65,6 +66,20 @@ public sealed class BackupViewModel : ViewModelBase
         };
 
         UpdateAvailability();
+        UpdateTargetDescription();
+    }
+
+    protected override void UpdateTitle() => Title = Tr("Sichern", "Back up");
+
+    /// <summary>Beschriftungen auch in den Gruppenzeilen auffrischen.</summary>
+    public override void RefreshTexts()
+    {
+        base.RefreshTexts();
+        foreach (var item in Categories)
+        {
+            item.RefreshTexts();
+        }
+
         UpdateTargetDescription();
     }
 
@@ -206,26 +221,26 @@ public sealed class BackupViewModel : ViewModelBase
         }
 
         PlanSummary = plan.SummaryText;
-        StatusMessage = $"Analyse abgeschlossen: {plan.SummaryText}";
+        StatusMessage = Tr($"Analyse abgeschlossen: {plan.SummaryText}", $"Analysis finished: {plan.SummaryText}");
     }
 
     private async Task<BackupPlan?> BuildPlanAsync()
     {
         if (!CanOperate() || _session.SelectedDevice is null)
         {
-            StatusMessage = "Bitte zuerst ein Gerät verbinden.";
+            StatusMessage = Tr("Bitte zuerst ein Gerät verbinden.", "Please connect a device first.");
             return null;
         }
 
         var categories = SelectedCategories();
         if (categories.Count == 0)
         {
-            StatusMessage = "Es ist keine Gruppe ausgewählt.";
+            StatusMessage = Tr("Es ist keine Gruppe ausgewählt.", "No group is selected.");
             return null;
         }
 
         IsRunning = true;
-        Progress.Reset("Analyse läuft");
+        Progress.Reset(Tr("Analyse läuft", "Analysing"));
         Progress.IsIndeterminate = true;
         ResultText = string.Empty;
 
@@ -266,7 +281,7 @@ public sealed class BackupViewModel : ViewModelBase
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Analyse abgebrochen.";
+            StatusMessage = Tr("Analyse abgebrochen.", "Analysis cancelled.");
             return null;
         }
         finally
@@ -283,7 +298,7 @@ public sealed class BackupViewModel : ViewModelBase
     {
         if (!CanOperate() || _session.SelectedDevice is null)
         {
-            StatusMessage = "Bitte zuerst ein Gerät verbinden.";
+            StatusMessage = Tr("Bitte zuerst ein Gerät verbinden.", "Please connect a device first.");
             return;
         }
 
@@ -300,24 +315,26 @@ public sealed class BackupViewModel : ViewModelBase
         if (plan.CopyCount == 0)
         {
             await DialogService.ShowInfoAsync(
-                "Nichts zu tun",
-                "Es wurden keine neuen oder geänderten Elemente gefunden. Die Sicherung ist bereits aktuell.");
+                Tr("Nichts zu tun", "Nothing to do"),
+                Tr("Es wurden keine neuen oder geänderten Elemente gefunden. Die Sicherung ist bereits aktuell.",
+                   "No new or changed items were found. The backup is already up to date."));
             return;
         }
 
         if (CreateArchive && ArchivePassword.Length is > 0 and < 6)
         {
             await DialogService.ShowInfoAsync(
-                "Kennwort zu kurz",
-                "Bitte ein Kennwort mit mindestens sechs Zeichen verwenden – oder das Feld leer lassen.");
+                Tr("Kennwort zu kurz", "Password too short"),
+                Tr("Bitte ein Kennwort mit mindestens sechs Zeichen verwenden – oder das Feld leer lassen.",
+                   "Please use a password of at least six characters – or leave the field empty."));
             return;
         }
 
         IsRunning = true;
         _session.IsBusy = true;
-        _session.BusyDescription = "Sicherung läuft";
+        _session.BusyDescription = Tr("Sicherung läuft", "Backup running");
         ResultText = string.Empty;
-        Progress.Reset("Sicherung wird vorbereitet");
+        Progress.Reset(Tr("Sicherung wird vorbereitet", "Preparing backup"));
         _cancellation = new CancellationTokenSource();
 
         try
@@ -343,7 +360,7 @@ public sealed class BackupViewModel : ViewModelBase
                 .ConfigureAwait(true);
 
             ResultText = result.Canceled
-                ? "Abgebrochen – " + result.SummaryText
+                ? Tr("Abgebrochen – ", "Cancelled – ") + result.SummaryText
                 : result.SummaryText;
 
             StatusMessage = ResultText;
@@ -353,7 +370,7 @@ public sealed class BackupViewModel : ViewModelBase
                 var removed = _session.Repository.ApplyRetention(serial, _session.Settings.KeepSetsPerDevice);
                 if (removed > 0)
                 {
-                    StatusMessage += $" · {removed} alte Sicherung(en) entfernt";
+                    StatusMessage += Tr($" · {removed} alte Sicherung(en) entfernt", $" · {removed} old backup(s) removed");
                 }
             }
 
@@ -364,14 +381,20 @@ public sealed class BackupViewModel : ViewModelBase
 
             var message = result.SummaryText +
                           Environment.NewLine + Environment.NewLine +
-                          "Ordner: " + result.SetDirectory +
-                          (result.ArchivePath is null ? string.Empty : Environment.NewLine + "Archiv: " + result.ArchivePath) +
+                          Tr("Ordner: ", "Folder: ") + result.SetDirectory +
+                          (result.ArchivePath is null
+                              ? string.Empty
+                              : Environment.NewLine + Tr("Archiv: ", "Archive: ") + result.ArchivePath) +
                           (result.Warnings.Count == 0
                               ? string.Empty
-                              : Environment.NewLine + Environment.NewLine + "Hinweise:" + Environment.NewLine +
+                              : Environment.NewLine + Environment.NewLine + Tr("Hinweise:", "Notes:") + Environment.NewLine +
                                 string.Join(Environment.NewLine, result.Warnings.Distinct().Take(15)));
 
-            await DialogService.ShowInfoAsync(result.Canceled ? "Sicherung abgebrochen" : "Sicherung abgeschlossen", message);
+            await DialogService.ShowInfoAsync(
+                result.Canceled
+                    ? Tr("Sicherung abgebrochen", "Backup cancelled")
+                    : Tr("Sicherung abgeschlossen", "Backup finished"),
+                message);
         }
         finally
         {
@@ -392,7 +415,7 @@ public sealed class BackupViewModel : ViewModelBase
             return;
         }
 
-        _session.Log.Info("Automatische Sicherung wird gestartet.");
+        _session.Log.Info(Tr("Automatische Sicherung wird gestartet.", "Starting automatic backup."));
         _plan = null;
         await StartAsync().ConfigureAwait(true);
     }
@@ -426,8 +449,11 @@ public sealed class BackupViewModel : ViewModelBase
                     hasRoot,
                     hasRoot
                         ? string.Empty
-                        : "Nicht verfügbar: Das Gerät bietet keinen Root-Zugriff. Ohne Root lässt Android seit " +
-                          "Version 12 keine Sicherung fremder App-Daten zu.");
+                        : Tr(
+                        "Nicht verfügbar: Das Gerät bietet keinen Root-Zugriff. Ohne Root lässt Android seit " +
+                        "Version 12 keine Sicherung fremder App-Daten zu.",
+                        "Not available: this device offers no root access. Without root, Android has blocked " +
+                        "backups of other apps' data since version 12."));
                 continue;
             }
 
@@ -436,8 +462,11 @@ public sealed class BackupViewModel : ViewModelBase
             {
                 item.SetAvailability(
                     false,
-                    $"Nicht verfügbar: Ab Android 13 (dieses Gerät: API {sdk}) liefert „adb backup“ keine Daten mehr. " +
-                    "Nutze stattdessen „Apps (APK)“ und beim Einrichten des neuen Telefons die Android-Übertragung.");
+                    Tr(
+                        $"Nicht verfügbar: Ab Android 13 (dieses Gerät: API {sdk}) liefert „adb backup“ keine Daten mehr. " +
+                        "Nutze stattdessen „Apps (APK)“ und beim Einrichten des neuen Telefons die Android-Übertragung.",
+                        $"Not available: from Android 13 on (this device: API {sdk}) \"adb backup\" returns no data. " +
+                        "Use \"Apps (APK)\" instead, plus the Android transfer when setting up the new phone."));
                 continue;
             }
 
@@ -458,7 +487,7 @@ public sealed class BackupViewModel : ViewModelBase
     private void ResetPlan()
     {
         _plan = null;
-        PlanSummary = "Noch nichts analysiert.";
+        PlanSummary = Tr("Noch nichts analysiert.", "Nothing analysed yet.");
         foreach (var item in Categories)
         {
             item.ResetAnalysis();
@@ -470,14 +499,16 @@ public sealed class BackupViewModel : ViewModelBase
         var serial = _session.SelectedDevice?.Serial;
         if (serial is null)
         {
-            TargetDescription = "Zielordner: " + _session.Settings.BackupRoot;
+            TargetDescription = Tr("Zielordner: ", "Target folder: ") + _session.Settings.BackupRoot;
             return;
         }
 
         var latest = _session.Repository.LatestFor(serial);
         TargetDescription = Incremental && latest is not null
-            ? $"Aktualisiert den vorhandenen Satz „{latest.Name}“ vom {latest.UpdatedText} ({latest.SizeText})."
-            : "Legt einen neuen Sicherungssatz unter " + _session.Settings.BackupRoot + " an.";
+            ? Tr($"Aktualisiert den vorhandenen Satz „{latest.Name}“ vom {latest.UpdatedText} ({latest.SizeText}).",
+                 $"Updates the existing set \"{latest.Name}\" from {latest.UpdatedText} ({latest.SizeText}).")
+            : Tr("Legt einen neuen Sicherungssatz unter " + _session.Settings.BackupRoot + " an.",
+                 "Creates a new backup set under " + _session.Settings.BackupRoot + ".");
     }
 
     private void RaiseCommandStates()
@@ -487,10 +518,54 @@ public sealed class BackupViewModel : ViewModelBase
         CancelCommand.RaiseCanExecuteChanged();
     }
 
+    #region Beschriftungen
+
+    public string PageHint => Tr(
+        "Gruppen auswählen, analysieren und die Sicherung starten. Fotos, Videos, Apps und mehr landen als lesbare Dateien auf dem PC.",
+        "Pick the groups, analyse them and start the backup. Photos, videos, apps and more end up as readable files on the PC.");
+
+    public string LabelIncremental => Tr("Nur Neues und Geändertes sichern", "Back up new and changed items only");
+
+    public string TipIncremental => Tr(
+        "Aktualisiert den letzten Sicherungssatz dieses Gerätes, statt alles erneut zu übertragen.",
+        "Updates this device's most recent backup set instead of transferring everything again.");
+
+    public string LabelHashes => Tr("Prüfsummen berechnen", "Calculate checksums");
+
+    public string TipHashes => Tr(
+        "Ermöglicht später eine echte Überprüfung der Sicherung (SHA-256).",
+        "Enables a real verification of the backup later on (SHA-256).");
+
+    public string LabelRemoveDeleted => Tr("Gelöschte Dateien entfernen", "Remove deleted files");
+
+    public string TipRemoveDeleted => Tr(
+        "Entfernt beim inkrementellen Lauf Kopien, die es auf dem Gerät nicht mehr gibt.",
+        "During an incremental run this removes copies that no longer exist on the device.");
+
+    public string LabelArchive => Tr("Am Ende ZIP-Archiv erstellen", "Create a ZIP archive at the end");
+
+    public string LabelArchivePassword => Tr("Kennwort für das Archiv (optional):", "Password for the archive (optional):");
+
+    public string HintArchivePassword => Tr("AES-256, mindestens 6 Zeichen", "AES-256, at least 6 characters");
+
+    public string LabelSelectAll => Tr("Alle", "All");
+
+    public string LabelSelectNone => Tr("Keine", "None");
+
+    public string LabelSelectRecommended => Tr("Empfohlene Auswahl", "Recommended selection");
+
+    public string LabelAnalyze => Tr("Analysieren", "Analyse");
+
+    public string LabelStart => Tr("Sicherung starten", "Start backup");
+
+    public string LabelCancel => Tr("Abbrechen", "Cancel");
+
+    #endregion
+
     private void ReportError(Exception ex)
     {
-        _session.Log.Error("Sicherung fehlgeschlagen", ex);
-        StatusMessage = "Fehler: " + ex.Message;
-        _ = DialogService.ShowInfoAsync("Fehler", ex.Message);
+        _session.Log.Error(Tr("Sicherung fehlgeschlagen", "Backup failed"), ex);
+        StatusMessage = Tr("Fehler: ", "Error: ") + ex.Message;
+        _ = DialogService.ShowInfoAsync(Tr("Fehler", "Error"), ex.Message);
     }
 }

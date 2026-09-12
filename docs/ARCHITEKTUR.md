@@ -91,6 +91,38 @@ Beim Zurückspielen wird die App zuerst installiert, dann gestoppt (`am force-st
 nach `/data/local/tmp` geschoben, nach `/data/data` entpackt und anschließend der Besitzer
 (numerische UID aus `dumpsys package`) sowie der SELinux-Kontext (`restorecon -R`) richtiggestellt.
 
+## Sprache und Erscheinungsbild
+
+Die Sprachverwaltung liegt in `PixelBackup.Core.Localization` und folgt demselben Muster wie
+OfficeInstall: `Loc.Tr("deutsch", "english")` liefert den Text der aktuellen Sprache, ein
+Wechsel meldet sich über `Localizer.I.LanguageChanged`. Die Ansichtsmodelle stellen ihre
+Beschriftungen als Eigenschaften bereit (`LabelStart`, `SectionPaths` …) und melden nach einem
+Wechsel alle Eigenschaften als geändert – dadurch wirkt die Umschaltung sofort, ohne Neustart.
+Kategorien tragen ihre Texte zweisprachig im Katalog (`NameDe`/`NameEn`).
+
+Die Startsprache kommt aus `CultureInfo.CurrentUICulture` (Deutsch bleibt Deutsch, alles andere
+wird Englisch); zusätzlich stellt `Localizer.ApplyCulture()` Zahlen- und Datumsformate um.
+
+Das Erscheinungsbild steuert `ThemeService`: „Wie das System“ setzt `ThemeVariant.Default`,
+womit Avalonia den Hell-/Dunkelmodus des Betriebssystems übernimmt; `ActualThemeVariant` sagt,
+was daraus geworden ist. Die Farben liegen als `ThemeDictionaries` in `App.axaml`.
+
+## Komponenten (adb und USB-Treiber)
+
+`SdkRepositoryClient` liest Googles offizielle Paketlisten – `repository2-3.xml` für die
+Plattform-Tools, `addon2-3.xml` für den USB-Treiber –, wählt das Archiv passend zum
+Betriebssystem, lädt es mit Fortschrittsmeldung, prüft die SHA-1-Prüfsumme und entpackt es.
+
+`PlatformToolsInstaller` vergleicht die Fassung aus `adb version` mit der angebotenen Revision
+und installiert nach `%LOCALAPPDATA%\PixelBackup\platform-tools`. Vor einem Austausch wird der
+adb-Server beendet, sonst blockiert Windows die Dateien.
+
+`UsbDriverService` fragt Windows in einem einzigen PowerShell-Aufruf ab: Treiberspeicher
+(`pnputil /enum-drivers`), Geräte mit Problemkennung (`Win32_PnPEntity`) und den gebundenen
+Treiber (`Win32_PnPSignedDriver`). Die Installation läuft über `pnputil /add-driver … /install`
+mit Rückfrage der Benutzerkontensteuerung. Auf Linux und macOS meldet der Dienst „nicht
+erforderlich“ samt Hinweis auf die udev-Regeln.
+
 ## Datenformate
 
 * `manifest.json` – Schemaversion, Gerät, Kategorien, alle Einträge (Gerätepfad, lokaler Pfad,

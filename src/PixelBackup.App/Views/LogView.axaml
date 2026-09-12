@@ -5,7 +5,7 @@
   <Grid RowDefinitions="Auto,*,Auto">
 
     <StackPanel Grid.Row="0" Spacing="2">
-      <TextBlock Text="Protokoll" Classes="h1" />
+      <TextBlock Text="{Binding Title}" Classes="h1" />
       <TextBlock Text="{Binding LogPathText}" Classes="hint" />
     </StackPanel>
 
@@ -26,9 +26,9 @@
     </Border>
 
     <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
-      <Button Content="Protokoll speichern" Command="{Binding SaveCommand}" />
-      <Button Content="Protokollordner öffnen" Command="{Binding OpenFolderCommand}" />
-      <Button Content="Anzeige leeren" Command="{Binding ClearCommand}" />
+      <Button Content="{Binding LabelSave}" Command="{Binding SaveCommand}" />
+      <Button Content="{Binding LabelOpenFolder}" Command="{Binding OpenFolderCommand}" />
+      <Button Content="{Binding LabelClear}" Command="{Binding ClearCommand}" />
     </StackPanel>
 
   </Grid>

@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PixelBackup.App.Views.MainWindow"
-        Title="Pixel Backup – Sicherung für Android-Geräte"
+        Title="{Binding WindowTitle}"
         Width="1180"
         Height="780"
         MinWidth="940"
@@ -26,7 +26,7 @@
                      VerticalAlignment="Center"
                      FontWeight="SemiBold" />
           <ProgressBar IsIndeterminate="True" Width="110" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
-          <Button Content="Geräte suchen" Command="{Binding RefreshDevicesCommand}" />
+          <Button Content="{Binding LabelFindDevices}" Command="{Binding RefreshDevicesCommand}" />
         </StackPanel>
       </Grid>
     </Border>

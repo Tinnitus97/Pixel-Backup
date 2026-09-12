@@ -1,5 +1,6 @@
 using PixelBackup.Core.Adb;
 using PixelBackup.Core.Util;
+using PixelBackup.Core.Localization;
 
 namespace PixelBackup.Core.Model;
 
@@ -41,9 +42,11 @@ public sealed class DeviceInfo
 
     public string RootText => RootAccess switch
     {
-        RootMode.AdbRoot => "ja (adbd läuft als root)",
-        RootMode.Su => "ja (su verfügbar)",
-        _ => "nein – App-Daten sind systembedingt nicht vollständig sicherbar"
+        RootMode.AdbRoot => Loc.Tr("ja (adbd läuft als root)", "yes (adbd runs as root)"),
+        RootMode.Su => Loc.Tr("ja (su verfügbar)", "yes (su available)"),
+        _ => Loc.Tr(
+            "nein – App-Daten sind systembedingt nicht vollständig sicherbar",
+            "no – app data cannot be backed up completely, by Android's design")
     };
 
     public string DisplayName
@@ -61,9 +64,13 @@ public sealed class DeviceInfo
     public string AndroidText =>
         string.IsNullOrWhiteSpace(SdkLevel) ? AndroidVersion : $"Android {AndroidVersion} (API {SdkLevel})";
 
+    public string BatteryText => Loc.Tr($"Akku {BatteryLevel}%", $"battery {BatteryLevel}%");
+
     public string StorageText => StorageTotalBytes <= 0
-        ? "unbekannt"
-        : $"{Humanize.Bytes(StorageUsedBytes)} von {Humanize.Bytes(StorageTotalBytes)} belegt · {Humanize.Bytes(StorageFreeBytes)} frei";
+        ? Loc.Tr("unbekannt", "unknown")
+        : Loc.Tr(
+            $"{Humanize.Bytes(StorageUsedBytes)} von {Humanize.Bytes(StorageTotalBytes)} belegt · {Humanize.Bytes(StorageFreeBytes)} frei",
+            $"{Humanize.Bytes(StorageUsedBytes)} of {Humanize.Bytes(StorageTotalBytes)} used · {Humanize.Bytes(StorageFreeBytes)} free");
 
     /// <summary>Ordnername für die Sicherungen dieses Gerätes.</summary>
     public string FolderName

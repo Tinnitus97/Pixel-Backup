@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text;
 
+using PixelBackup.Core.Localization;
+
 namespace PixelBackup.Core.Adb;
 
 public sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError)
@@ -20,7 +22,7 @@ public sealed record ProcessResult(int ExitCode, string StandardOutput, string S
         {
             var text = string.IsNullOrWhiteSpace(StandardError) ? StandardOutput : StandardError;
             var line = text.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0);
-            return string.IsNullOrEmpty(line) ? $"Exit-Code {ExitCode}" : line;
+            return string.IsNullOrEmpty(line) ? Loc.Tr($"Exit-Code {ExitCode}", $"exit code {ExitCode}") : line;
         }
     }
 }
@@ -92,7 +94,9 @@ public static class ProcessRunner
         }
         catch (Exception ex)
         {
-            throw new AdbException($"Der Prozess '{fileName}' konnte nicht gestartet werden: {ex.Message}", ex);
+            throw new AdbException(Loc.Tr(
+                $"Der Prozess '{fileName}' konnte nicht gestartet werden: {ex.Message}",
+                $"The process '{fileName}' could not be started: {ex.Message}"), ex);
         }
 
         process.BeginOutputReadLine();
@@ -164,7 +168,9 @@ public static class ProcessRunner
         }
         catch (Exception ex)
         {
-            throw new AdbException($"Der Prozess '{fileName}' konnte nicht gestartet werden: {ex.Message}", ex);
+            throw new AdbException(Loc.Tr(
+                $"Der Prozess '{fileName}' konnte nicht gestartet werden: {ex.Message}",
+                $"The process '{fileName}' could not be started: {ex.Message}"), ex);
         }
 
         var errorTask = process.StandardError.ReadToEndAsync();

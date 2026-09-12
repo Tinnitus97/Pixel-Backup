@@ -36,8 +36,7 @@ public sealed class BackupSet
         ? "–"
         : string.Join(", ", Manifest.Categories.Select(CategoryCatalog.DisplayNameOf));
 
-    public string Summary =>
-        $"{Humanize.Count(Manifest.FileCount, "Element", "Elemente")} · {SizeText} · {CategoriesText}";
+    public string Summary => $"{Humanize.Items(Manifest.FileCount)} · {SizeText} · {CategoriesText}";
 
     /// <summary>Absoluter Pfad eines Eintrags innerhalb dieses Satzes.</summary>
     public string LocalPathOf(BackupEntry entry) => PathMapper.ToLocalPath(Directory, entry.RelativePath);

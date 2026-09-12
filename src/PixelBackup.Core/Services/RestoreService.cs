@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using PixelBackup.Core.Adb;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Util;
 
@@ -39,9 +40,11 @@ public sealed class RestoreService
 
         if (exportEntries.Count > 0 && importEntries.Count == 0)
         {
-            result.Warnings.Add(
+            result.Warnings.Add(Loc.Tr(
                 "Kontakte, Nachrichten und Systemeinstellungen wurden als Rohdaten gesichert und lassen sich nicht " +
-                "automatisch zurückschreiben. Die Dateien liegen im Ordner 'data' des Sicherungssatzes.");
+                "automatisch zurückschreiben. Die Dateien liegen im Ordner 'data' des Sicherungssatzes.",
+                "Contacts, messages and system settings were captured as raw data and cannot be written back " +
+                "automatically. The files sit in the 'data' folder of the backup set."));
         }
 
         var appGroups = apkEntries
@@ -57,7 +60,9 @@ public sealed class RestoreService
         long bytesDone = 0;
         var itemsDone = 0;
 
-        _log.Info($"Wiederherstellung startet: {options.Set.Name} → {serial}");
+        _log.Info(Loc.Tr(
+            $"Wiederherstellung startet: {options.Set.Name} → {serial}",
+            $"Restore starting: {options.Set.Name} → {serial}"));
 
         try
         {
@@ -67,7 +72,7 @@ public sealed class RestoreService
             {
                 progress?.Report(new OperationProgress
                 {
-                    Phase = "Vorhandene Dateien werden geprüft",
+                    Phase = Loc.Tr("Vorhandene Dateien werden geprüft", "Checking existing files"),
                     ItemsTotal = itemsTotal,
                     BytesTotal = bytesTotal
                 });
@@ -103,7 +108,9 @@ public sealed class RestoreService
                 if (!File.Exists(localPath))
                 {
                     result.FilesFailed++;
-                    result.Warnings.Add($"In der Sicherung fehlt: {entry.RelativePath}");
+                    result.Warnings.Add(Loc.Tr(
+                        $"In der Sicherung fehlt: {entry.RelativePath}",
+                        $"Missing from the backup: {entry.RelativePath}"));
                     continue;
                 }
 
@@ -117,7 +124,7 @@ public sealed class RestoreService
 
                     if (options.ConflictMode == ConflictMode.KeepBoth)
                     {
-                        target = PathMapper.AppendSuffix(target, "_wiederhergestellt");
+                        target = PathMapper.AppendSuffix(target, Loc.Tr("_wiederhergestellt", "_restored"));
                     }
                 }
 
@@ -140,7 +147,9 @@ public sealed class RestoreService
                 else
                 {
                     result.FilesFailed++;
-                    var message = $"{PathMapper.RemoteFileName(target)} konnte nicht übertragen werden: {push.ErrorSummary}";
+                    var message = Loc.Tr(
+                        $"{PathMapper.RemoteFileName(target)} konnte nicht übertragen werden: {push.ErrorSummary}",
+                        $"{PathMapper.RemoteFileName(target)} could not be transferred: {push.ErrorSummary}");
                     result.Warnings.Add(message);
                     _log.Warn(message);
                 }
@@ -157,7 +166,7 @@ public sealed class RestoreService
 
                     progress?.Report(new OperationProgress
                     {
-                        Phase = "Apps werden installiert",
+                        Phase = Loc.Tr("Apps werden installiert", "Installing apps"),
                         CurrentItem = group.Key,
                         ItemsDone = itemsDone,
                         ItemsTotal = itemsTotal,
@@ -176,7 +185,9 @@ public sealed class RestoreService
                     if (apks.Count == 0)
                     {
                         result.AppsFailed++;
-                        result.Warnings.Add($"Für {group.Key} fehlen die APK-Dateien in der Sicherung.");
+                        result.Warnings.Add(Loc.Tr(
+                            $"Für {group.Key} fehlen die APK-Dateien in der Sicherung.",
+                            $"The APK files for {group.Key} are missing from the backup."));
                         continue;
                     }
 
@@ -184,12 +195,14 @@ public sealed class RestoreService
                     if (install.Success && !install.CombinedOutput.Contains("Failure", StringComparison.OrdinalIgnoreCase))
                     {
                         result.AppsInstalled++;
-                        _log.Info($"Installiert: {group.Key}");
+                        _log.Info(Loc.Tr($"Installiert: {group.Key}", $"Installed: {group.Key}"));
                     }
                     else
                     {
                         result.AppsFailed++;
-                        var message = $"{group.Key} konnte nicht installiert werden: {install.ErrorSummary}";
+                        var message = Loc.Tr(
+                            $"{group.Key} konnte nicht installiert werden: {install.ErrorSummary}",
+                            $"{group.Key} could not be installed: {install.ErrorSummary}");
                         result.Warnings.Add(message);
                         _log.Warn(message);
                     }
@@ -210,8 +223,8 @@ public sealed class RestoreService
 
                     progress?.Report(new OperationProgress
                     {
-                        Phase = "App-Daten werden zurückgespielt",
-                        CurrentItem = "Bitte am Gerät bestätigen",
+                        Phase = Loc.Tr("App-Daten werden zurückgespielt", "Restoring app data"),
+                        CurrentItem = Loc.Tr("Bitte am Gerät bestätigen", "Please confirm on the device"),
                         ItemsDone = itemsDone,
                         ItemsTotal = itemsTotal,
                         BytesDone = bytesDone,
@@ -220,11 +233,15 @@ public sealed class RestoreService
                     });
 
                     itemsDone++;
-                    _log.Info("Bitte die Wiederherstellung am Gerät bestätigen (adb restore).");
+                    _log.Info(Loc.Tr(
+                        "Bitte die Wiederherstellung am Gerät bestätigen (adb restore).",
+                        "Please confirm the restore on the device (adb restore)."));
                     var restore = await _adb.LegacyRestoreAsync(serial, localPath, ct).ConfigureAwait(false);
                     if (!restore.Success)
                     {
-                        result.Warnings.Add("Die App-Daten konnten nicht zurückgespielt werden: " + restore.ErrorSummary);
+                        result.Warnings.Add(Loc.Tr(
+                            "Die App-Daten konnten nicht zurückgespielt werden: " + restore.ErrorSummary,
+                            "The app data could not be restored: " + restore.ErrorSummary));
                     }
                 }
             }
@@ -235,8 +252,9 @@ public sealed class RestoreService
                 var mode = await _adb.DetectRootAsync(serial, ct).ConfigureAwait(false);
                 if (mode == RootMode.None)
                 {
-                    result.Warnings.Add(
-                        "Die vollständigen App-Daten konnten nicht zurückgespielt werden: Das Zielgerät bietet keinen Root-Zugriff.");
+                    result.Warnings.Add(Loc.Tr(
+                        "Die vollständigen App-Daten konnten nicht zurückgespielt werden: Das Zielgerät bietet keinen Root-Zugriff.",
+                        "The full app data could not be restored: the target device offers no root access."));
                 }
                 else
                 {
@@ -246,7 +264,7 @@ public sealed class RestoreService
 
                         progress?.Report(new OperationProgress
                         {
-                            Phase = "App-Daten werden zurückgespielt",
+                            Phase = Loc.Tr("App-Daten werden zurückgespielt", "Restoring app data"),
                             CurrentItem = entry.PackageName ?? entry.RelativePath,
                             ItemsDone = itemsDone,
                             ItemsTotal = itemsTotal,
@@ -272,7 +290,7 @@ public sealed class RestoreService
 
                     progress?.Report(new OperationProgress
                     {
-                        Phase = "Importdateien werden abgelegt",
+                        Phase = Loc.Tr("Importdateien werden abgelegt", "Placing import files"),
                         CurrentItem = Path.GetFileName(entry.RelativePath),
                         ItemsDone = itemsDone,
                         ItemsTotal = itemsTotal,
@@ -296,19 +314,25 @@ public sealed class RestoreService
                     if (push.Success)
                     {
                         result.ImportFilesPlaced++;
-                        _log.Info($"Importdatei auf dem Gerät abgelegt: {target}");
+                        _log.Info(Loc.Tr(
+                            $"Importdatei auf dem Gerät abgelegt: {target}",
+                            $"Import file placed on the device: {target}"));
                     }
                     else
                     {
-                        result.Warnings.Add($"{fileName} konnte nicht abgelegt werden: {push.ErrorSummary}");
+                        result.Warnings.Add(Loc.Tr(
+                            $"{fileName} konnte nicht abgelegt werden: {push.ErrorSummary}",
+                            $"{fileName} could not be placed: {push.ErrorSummary}"));
                     }
                 }
 
                 if (result.ImportFilesPlaced > 0)
                 {
-                    result.Warnings.Add(
+                    result.Warnings.Add(Loc.Tr(
                         $"Kontakte, Nachrichten und Termine liegen als Importdateien unter {ImportFolder} auf dem Gerät. " +
-                        "Die Anleitung dazu steht in 'umzug-anleitung.txt' im Sicherungssatz.");
+                        "Die Anleitung dazu steht in 'umzug-anleitung.txt' im Sicherungssatz.",
+                        $"Contacts, messages and appointments are on the device as import files under {ImportFolder}. " +
+                        "The step-by-step guide is in 'umzug-anleitung.txt' inside the backup set."));
                 }
             }
 
@@ -317,7 +341,7 @@ public sealed class RestoreService
             {
                 progress?.Report(new OperationProgress
                 {
-                    Phase = "Medien werden am Gerät eingelesen",
+                    Phase = Loc.Tr("Medien werden am Gerät eingelesen", "Letting the device index the media"),
                     ItemsDone = itemsDone,
                     ItemsTotal = itemsTotal,
                     BytesDone = bytesDone,
@@ -335,11 +359,11 @@ public sealed class RestoreService
         catch (OperationCanceledException)
         {
             result.Canceled = true;
-            _log.Warn("Die Wiederherstellung wurde abgebrochen.");
+            _log.Warn(Loc.Tr("Die Wiederherstellung wurde abgebrochen.", "The restore was cancelled."));
         }
 
         result.Duration = stopwatch.Elapsed;
-        _log.Info("Wiederherstellung beendet: " + result.SummaryText);
+        _log.Info(Loc.Tr("Wiederherstellung beendet: ", "Restore finished: ") + result.SummaryText);
         return result;
     }
 
@@ -370,7 +394,9 @@ public sealed class RestoreService
         var installed = await _adb.ShellTextAsync(serial, $"pm path {AdbClient.Quote(package)}", ct).ConfigureAwait(false);
         if (!installed.Contains("package:", StringComparison.Ordinal))
         {
-            result.Warnings.Add($"{package} ist nicht installiert – die App-Daten wurden übersprungen.");
+            result.Warnings.Add(Loc.Tr(
+                $"{package} ist nicht installiert – die App-Daten wurden übersprungen.",
+                $"{package} is not installed – its app data was skipped."));
             return;
         }
 
@@ -381,7 +407,9 @@ public sealed class RestoreService
             var push = await _adb.PushAsync(serial, localPath, temporary, ct).ConfigureAwait(false);
             if (!push.Success)
             {
-                result.Warnings.Add($"{package}: Das Datenarchiv konnte nicht übertragen werden ({push.ErrorSummary}).");
+                result.Warnings.Add(Loc.Tr(
+                    $"{package}: Das Datenarchiv konnte nicht übertragen werden ({push.ErrorSummary}).",
+                    $"{package}: the data archive could not be transferred ({push.ErrorSummary})."));
                 result.FilesFailed++;
                 return;
             }
@@ -394,7 +422,9 @@ public sealed class RestoreService
 
             if (!extract.Success)
             {
-                result.Warnings.Add($"{package}: Die App-Daten konnten nicht entpackt werden ({extract.ErrorSummary}).");
+                result.Warnings.Add(Loc.Tr(
+                    $"{package}: Die App-Daten konnten nicht entpackt werden ({extract.ErrorSummary}).",
+                    $"{package}: the app data could not be extracted ({extract.ErrorSummary})."));
                 result.FilesFailed++;
                 return;
             }
@@ -413,7 +443,7 @@ public sealed class RestoreService
 
             result.AppDataRestored++;
             result.BytesRestored += Math.Max(0, entry.Size);
-            _log.Info($"App-Daten zurückgespielt: {package}");
+            _log.Info(Loc.Tr($"App-Daten zurückgespielt: {package}", $"App data restored: {package}"));
         }
         finally
         {

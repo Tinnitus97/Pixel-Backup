@@ -1,4 +1,5 @@
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Util;
 
@@ -30,7 +31,7 @@ public sealed class VerificationService
 
             progress?.Report(new OperationProgress
             {
-                Phase = "Sicherung wird geprüft",
+                Phase = Loc.Tr("Sicherung wird geprüft", "Verifying backup"),
                 CurrentItem = entry.RelativePath,
                 ItemsDone = index,
                 ItemsTotal = entries.Count,
@@ -72,7 +73,7 @@ public sealed class VerificationService
             }
         }
 
-        _log.Info("Überprüfung beendet: " + result.SummaryText);
+        _log.Info(Loc.Tr("Überprüfung beendet: ", "Verification finished: ") + result.SummaryText);
         return result;
     }
 }

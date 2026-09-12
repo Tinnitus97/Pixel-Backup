@@ -31,7 +31,9 @@ public sealed class RestoreCategoryViewModel : ObservableObject
 
     public string Icon => CategoryCatalog.ById(CategoryId)?.Icon ?? "📁";
 
-    public string SummaryText => $"{Humanize.Count(ItemCount, "Element", "Elemente")} · {Humanize.Bytes(Bytes)}";
+    public string SummaryText => $"{Humanize.Items(ItemCount)} · {Humanize.Bytes(Bytes)}";
+
+    public void RefreshTexts() => OnPropertyChanged(string.Empty);
 
     public bool IsSelected
     {
@@ -59,15 +61,11 @@ public sealed class RestoreViewModel : ViewModelBase
     public RestoreViewModel(AppSession session)
     {
         _session = session;
-        Title = "Wiederherstellen";
         Icon = "♻";
+        UpdateTitle();
 
-        ConflictOptions = new ObservableCollection<ConflictOption>
-        {
-            new(ConflictMode.Skip, "Vorhandene Dateien behalten"),
-            new(ConflictMode.Overwrite, "Vorhandene Dateien überschreiben"),
-            new(ConflictMode.KeepBoth, "Beide behalten (Namenszusatz)")
-        };
+        ConflictOptions = new ObservableCollection<ConflictOption>();
+        BuildConflictOptions();
         _conflictOption = ConflictOptions[0];
 
         RefreshCommand = new RelayCommand(LoadSets);
@@ -86,6 +84,30 @@ public sealed class RestoreViewModel : ViewModelBase
         };
 
         LoadSets();
+    }
+
+    protected override void UpdateTitle() => Title = Tr("Wiederherstellen", "Restore");
+
+    public override void RefreshTexts()
+    {
+        base.RefreshTexts();
+
+        var selected = SelectedConflictOption.Mode;
+        BuildConflictOptions();
+        SelectedConflictOption = ConflictOptions.FirstOrDefault(o => o.Mode == selected) ?? ConflictOptions[0];
+
+        foreach (var category in Categories)
+        {
+            category.RefreshTexts();
+        }
+    }
+
+    private void BuildConflictOptions()
+    {
+        ConflictOptions.Clear();
+        ConflictOptions.Add(new ConflictOption(ConflictMode.Skip, Tr("Vorhandene Dateien behalten", "Keep existing files")));
+        ConflictOptions.Add(new ConflictOption(ConflictMode.Overwrite, Tr("Vorhandene Dateien überschreiben", "Overwrite existing files")));
+        ConflictOptions.Add(new ConflictOption(ConflictMode.KeepBoth, Tr("Beide behalten (Namenszusatz)", "Keep both (name suffix)")));
     }
 
     public AppSession Session => _session;
@@ -125,8 +147,9 @@ public sealed class RestoreViewModel : ViewModelBase
     public bool HasSet => SelectedSet is not null;
 
     public string SetDetails => SelectedSet is null
-        ? "Bitte links einen Sicherungssatz auswählen."
-        : $"{SelectedSet.DeviceName} · erstellt am {SelectedSet.CreatedText} · zuletzt aktualisiert {SelectedSet.UpdatedText}" +
+        ? Tr("Bitte links einen Sicherungssatz auswählen.", "Please pick a backup set on the left.")
+        : Tr($"{SelectedSet.DeviceName} · erstellt am {SelectedSet.CreatedText} · zuletzt aktualisiert {SelectedSet.UpdatedText}",
+             $"{SelectedSet.DeviceName} · created {SelectedSet.CreatedText} · last updated {SelectedSet.UpdatedText}") +
           Environment.NewLine + SelectedSet.Summary +
           Environment.NewLine + SelectedSet.Directory;
 
@@ -225,12 +248,7 @@ public sealed class RestoreViewModel : ViewModelBase
 
         foreach (var group in SelectedSet.Manifest.Entries
                      .GroupBy(e => e.CategoryId)
-                     .OrderBy(g => CategoryCatalog.IndexOf(CategoryCatalog.ById(g.Key) ?? new BackupCategory
-                     {
-                         Id = g.Key,
-                         DisplayName = g.Key,
-                         Description = string.Empty
-                     })))
+                     .OrderBy(g => CategoryCatalog.IndexOf(g.Key)))
         {
             Categories.Add(new RestoreCategoryViewModel(group.Key, group.Count(), group.Sum(e => Math.Max(0, e.Size))));
         }
@@ -257,19 +275,23 @@ public sealed class RestoreViewModel : ViewModelBase
         var categoryIds = Categories.Where(c => c.IsSelected).Select(c => c.CategoryId).ToList();
         if (categoryIds.Count == 0)
         {
-            StatusMessage = "Es ist keine Gruppe ausgewählt.";
+            StatusMessage = Tr("Es ist keine Gruppe ausgewählt.", "No group is selected.");
             return;
         }
 
         var device = _session.DeviceInfo?.DisplayName ?? _session.SelectedDevice.DisplayName;
+        var groups = string.Join(", ", categoryIds.Select(CategoryCatalog.DisplayNameOf));
         var confirmed = await DialogService.ConfirmAsync(
-            "Wiederherstellung starten",
-            $"Der Sicherungssatz „{SelectedSet.Name}“ wird auf {device} zurückgespielt." +
+            Tr("Wiederherstellung starten", "Start restore"),
+            Tr($"Der Sicherungssatz „{SelectedSet.Name}“ wird auf {device} zurückgespielt.",
+               $"The backup set \"{SelectedSet.Name}\" will be restored to {device}.") +
             Environment.NewLine + Environment.NewLine +
-            $"Gruppen: {string.Join(", ", categoryIds.Select(CategoryCatalog.DisplayNameOf))}" +
+            Tr($"Gruppen: {groups}", $"Groups: {groups}") +
             Environment.NewLine +
-            $"Konflikte: {SelectedConflictOption.DisplayName}" +
-            (InstallApps ? Environment.NewLine + "Apps werden installiert." : string.Empty));
+            Tr($"Konflikte: {SelectedConflictOption.DisplayName}", $"Conflicts: {SelectedConflictOption.DisplayName}") +
+            (InstallApps
+                ? Environment.NewLine + Tr("Apps werden installiert.", "Apps will be installed.")
+                : string.Empty));
 
         if (!confirmed)
         {
@@ -278,9 +300,9 @@ public sealed class RestoreViewModel : ViewModelBase
 
         IsRunning = true;
         _session.IsBusy = true;
-        _session.BusyDescription = "Wiederherstellung läuft";
+        _session.BusyDescription = Tr("Wiederherstellung läuft", "Restore running");
         ResultText = string.Empty;
-        Progress.Reset("Wiederherstellung wird vorbereitet");
+        Progress.Reset(Tr("Wiederherstellung wird vorbereitet", "Preparing restore"));
         _cancellation = new CancellationTokenSource();
 
         try
@@ -303,17 +325,19 @@ public sealed class RestoreViewModel : ViewModelBase
                 .RunAsync(_session.SelectedDevice.Serial, options, progress, _cancellation.Token)
                 .ConfigureAwait(true);
 
-            ResultText = result.Canceled ? "Abgebrochen – " + result.SummaryText : result.SummaryText;
+            ResultText = result.Canceled ? Tr("Abgebrochen – ", "Cancelled – ") + result.SummaryText : result.SummaryText;
             StatusMessage = ResultText;
 
             var message = result.SummaryText +
                           (result.Warnings.Count == 0
                               ? string.Empty
-                              : Environment.NewLine + Environment.NewLine + "Hinweise:" + Environment.NewLine +
+                              : Environment.NewLine + Environment.NewLine + Tr("Hinweise:", "Notes:") + Environment.NewLine +
                                 string.Join(Environment.NewLine, result.Warnings.Distinct().Take(15)));
 
             await DialogService.ShowInfoAsync(
-                result.Canceled ? "Wiederherstellung abgebrochen" : "Wiederherstellung abgeschlossen",
+                result.Canceled
+                    ? Tr("Wiederherstellung abgebrochen", "Restore cancelled")
+                    : Tr("Wiederherstellung abgeschlossen", "Restore finished"),
                 message);
         }
         finally
@@ -333,10 +357,52 @@ public sealed class RestoreViewModel : ViewModelBase
         CancelCommand.RaiseCanExecuteChanged();
     }
 
+    #region Beschriftungen
+
+    public string PageHint => Tr(
+        "Sicherungssatz wählen, Gruppen auswählen und auf das verbundene Gerät zurückspielen.",
+        "Pick a backup set, choose the groups and restore them to the connected device.");
+
+    public string SectionSets => Tr("Sicherungen", "Backups");
+
+    public string SectionGroups => Tr("Diese Gruppen zurückspielen", "Restore these groups");
+
+    public string LabelRefresh => Tr("Aktualisieren", "Refresh");
+
+    public string LabelConflict => Tr("Wenn die Datei schon auf dem Gerät liegt:", "If the file already exists on the device:");
+
+    public string LabelInstallApps => Tr("Apps installieren", "Install apps");
+
+    public string LabelDowngrade => Tr("Ältere App-Version zulassen", "Allow older app version");
+
+    public string LabelLegacyAppData => Tr("App-Daten (adb restore) zurückspielen", "Restore app data (adb restore)");
+
+    public string LabelRootAppData => Tr("App-Daten aus Root-Sicherung zurückspielen", "Restore app data from the root backup");
+
+    public string TipRootAppData => Tr(
+        "Benötigt Root auf dem Zielgerät. Die Apps werden vorher installiert.",
+        "Needs root on the target device. The apps are installed first.");
+
+    public string LabelImportFiles => Tr("Importdateien auf dem Gerät ablegen", "Place import files on the device");
+
+    public string TipImportFiles => Tr(
+        "Legt kontakte.vcf, sms.xml und kalender.ics unter /sdcard/PixelBackup-Import ab.",
+        "Places kontakte.vcf, sms.xml and kalender.ics under /sdcard/PixelBackup-Import.");
+
+    public string LabelSelectAll => Tr("Alle", "All");
+
+    public string LabelSelectNone => Tr("Keine", "None");
+
+    public string LabelStart => Tr("Wiederherstellung starten", "Start restore");
+
+    public string LabelCancel => Tr("Abbrechen", "Cancel");
+
+    #endregion
+
     private void ReportError(Exception ex)
     {
-        _session.Log.Error("Wiederherstellung fehlgeschlagen", ex);
-        StatusMessage = "Fehler: " + ex.Message;
-        _ = DialogService.ShowInfoAsync("Fehler", ex.Message);
+        _session.Log.Error(Tr("Wiederherstellung fehlgeschlagen", "Restore failed"), ex);
+        StatusMessage = Tr("Fehler: ", "Error: ") + ex.Message;
+        _ = DialogService.ShowInfoAsync(Tr("Fehler", "Error"), ex.Message);
     }
 }

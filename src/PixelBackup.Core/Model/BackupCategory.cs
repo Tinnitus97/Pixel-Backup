@@ -1,3 +1,4 @@
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Util;
 
 namespace PixelBackup.Core.Model;
@@ -46,9 +47,18 @@ public sealed class BackupCategory
 {
     public required string Id { get; init; }
 
-    public required string DisplayName { get; init; }
+    public required string NameDe { get; init; }
 
-    public required string Description { get; init; }
+    public required string NameEn { get; init; }
+
+    public required string DescriptionDe { get; init; }
+
+    public required string DescriptionEn { get; init; }
+
+    /// <summary>Anzeigename in der aktuell eingestellten Sprache.</summary>
+    public string DisplayName => Loc.Tr(NameDe, NameEn);
+
+    public string Description => Loc.Tr(DescriptionDe, DescriptionEn);
 
     public string Icon { get; init; } = "📁";
 
@@ -66,7 +76,11 @@ public sealed class BackupCategory
     public bool SelectedByDefault { get; init; } = true;
 
     /// <summary>Hinweistext, wenn die Kategorie Einschränkungen unterliegt.</summary>
-    public string? Caveat { get; init; }
+    public string? CaveatDe { get; init; }
+
+    public string? CaveatEn { get; init; }
+
+    public string? Caveat => CaveatDe is null ? null : Loc.Tr(CaveatDe, CaveatEn ?? CaveatDe);
 
     /// <summary>Content-URIs bzw. Namensräume, die exportiert werden.</summary>
     public IReadOnlyList<string> Sources { get; init; } = Array.Empty<string>();

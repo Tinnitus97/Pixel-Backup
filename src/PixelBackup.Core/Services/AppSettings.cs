@@ -10,6 +10,16 @@ public enum AppTheme
     Dark
 }
 
+public enum LanguageSetting
+{
+    /// <summary>Anzeigesprache des Systems übernehmen.</summary>
+    System,
+
+    German,
+
+    English
+}
+
 /// <summary>Dauerhaft gespeicherte Programmeinstellungen.</summary>
 public sealed class AppSettings
 {
@@ -34,6 +44,15 @@ public sealed class AppSettings
 
     public AppTheme Theme { get; set; } = AppTheme.System;
 
+    /// <summary>Sprache der Oberfläche; Standard ist die Anzeigesprache des Systems.</summary>
+    public LanguageSetting Language { get; set; } = LanguageSetting.System;
+
+    /// <summary>Beim Start prüfen, ob adb und Treiber vorhanden und aktuell sind.</summary>
+    public bool CheckComponentsOnStart { get; set; } = true;
+
+    /// <summary>Fehlende Plattform-Tools beim Start selbsttätig nachinstallieren.</summary>
+    public bool AutoInstallAdb { get; set; } = true;
+
     public List<string> SelectedCategories { get; set; } = new();
 
     public static string DefaultBackupRoot => Path.Combine(
@@ -52,6 +71,9 @@ public sealed class AppSettings
         AutoBackupOnConnect = AutoBackupOnConnect,
         WatchDevices = WatchDevices,
         Theme = Theme,
+        Language = Language,
+        CheckComponentsOnStart = CheckComponentsOnStart,
+        AutoInstallAdb = AutoInstallAdb,
         SelectedCategories = new List<string>(SelectedCategories)
     };
 }

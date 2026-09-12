@@ -13,20 +13,33 @@ public sealed class LogViewModel : ViewModelBase
     public LogViewModel(AppSession session)
     {
         _session = session;
-        Title = "Protokoll";
         Icon = "📜";
+        UpdateTitle();
 
         ClearCommand = new RelayCommand(() =>
         {
             _session.LogEntries.Clear();
-            StatusMessage = "Anzeige geleert – die Protokolldateien bleiben erhalten.";
+            StatusMessage = Tr("Anzeige geleert – die Protokolldateien bleiben erhalten.",
+                "Display cleared – the log files are kept.");
         });
 
         OpenFolderCommand = new RelayCommand(() => DialogService.OpenInFileManager(_session.LogDirectory));
-        SaveCommand = new AsyncRelayCommand(SaveAsync, null, ex => StatusMessage = "Fehler: " + ex.Message);
+        SaveCommand = new AsyncRelayCommand(SaveAsync, null, ex => StatusMessage = Tr("Fehler: ", "Error: ") + ex.Message);
     }
 
+    protected override void UpdateTitle() => Title = Tr("Protokoll", "Log");
+
     public AppSession Session => _session;
+
+    #region Beschriftungen
+
+    public string LabelSave => Tr("Protokoll speichern", "Save log");
+
+    public string LabelOpenFolder => Tr("Protokollordner öffnen", "Open log folder");
+
+    public string LabelClear => Tr("Anzeige leeren", "Clear display");
+
+    #endregion
 
     public IReadOnlyList<LogEntry> Entries => _session.LogEntries;
 
@@ -36,11 +49,11 @@ public sealed class LogViewModel : ViewModelBase
 
     public AsyncRelayCommand SaveCommand { get; }
 
-    public string LogPathText => "Protokolldateien: " + _session.LogDirectory;
+    public string LogPathText => Tr("Protokolldateien: ", "Log files: ") + _session.LogDirectory;
 
     private async Task SaveAsync()
     {
-        var folder = await DialogService.PickFolderAsync("Zielordner für das Protokoll");
+        var folder = await DialogService.PickFolderAsync(Tr("Zielordner für das Protokoll", "Target folder for the log"));
         if (folder is null)
         {
             return;
@@ -54,6 +67,6 @@ public sealed class LogViewModel : ViewModelBase
         }
 
         await File.WriteAllTextAsync(path, builder.ToString(), Encoding.UTF8);
-        StatusMessage = "Protokoll gespeichert: " + path;
+        StatusMessage = Tr("Protokoll gespeichert: ", "Log saved: ") + path;
     }
 }

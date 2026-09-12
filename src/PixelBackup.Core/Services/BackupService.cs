@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using PixelBackup.Core.Adb;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Util;
 
@@ -11,6 +12,10 @@ namespace PixelBackup.Core.Services;
 /// <summary>Erstellt Sicherungssätze: Analyse (Plan) und Durchführung.</summary>
 public sealed class BackupService
 {
+    public const string ReportFileName = "bericht.txt";
+    public const string MigrationGuideFileName = "umzug-anleitung.txt";
+
+
     private readonly AdbClient _adb;
     private readonly ILogSink _log;
 
@@ -42,8 +47,8 @@ public sealed class BackupService
         foreach (var category in categories.OrderBy(CategoryCatalog.IndexOf))
         {
             ct.ThrowIfCancellationRequested();
-            status?.Report($"Analysiere {category.DisplayName} …");
-            _log.Info($"Analysiere Kategorie '{category.DisplayName}'.");
+            status?.Report(Loc.Tr($"Analysiere {category.DisplayName} …", $"Analysing {category.DisplayName} …"));
+            _log.Info(Loc.Tr($"Analysiere Kategorie '{category.DisplayName}'.", $"Analysing category '{category.DisplayName}'."));
 
             switch (category.Kind)
             {
@@ -67,11 +72,12 @@ public sealed class BackupService
                         Type = BackupEntryType.LegacyAppData,
                         RemotePath = "adb-backup",
                         RelativePath = $"{PathMapper.AppDataFolder}/app-daten.ab",
-                        DisplayName = "App-Daten (adb backup)",
+                        DisplayName = Loc.Tr("App-Daten (adb backup)", "App data (adb backup)"),
                         Size = 0
                     });
-                    plan.Warnings.Add(
-                        "Die klassische App-Daten-Sicherung muss am Gerät bestätigt werden und wird ab Android 12 von den meisten Apps abgelehnt.");
+                    plan.Warnings.Add(Loc.Tr(
+                        "Die klassische App-Daten-Sicherung muss am Gerät bestätigt werden und wird ab Android 12 von den meisten Apps abgelehnt.",
+                        "The legacy app-data backup has to be confirmed on the device and is refused by most apps from Android 12 on."));
                     break;
 
                 case BackupCategoryKind.ContentProvider:
@@ -115,7 +121,9 @@ public sealed class BackupService
             MarkUnchangedItems(plan, previousSet);
         }
 
-        _log.Info($"Analyse abgeschlossen: {plan.CopyCount} zu sichernde Elemente, {Humanize.Bytes(plan.BytesToCopy)}.");
+        _log.Info(Loc.Tr(
+            $"Analyse abgeschlossen: {plan.CopyCount} zu sichernde Elemente, {Humanize.Bytes(plan.BytesToCopy)}.",
+            $"Analysis finished: {plan.CopyCount} items to back up, {Humanize.Bytes(plan.BytesToCopy)}."));
         return plan;
     }
 
@@ -182,7 +190,9 @@ public sealed class BackupService
         CancellationToken ct)
     {
         var packages = await _adb.ListPackagesAsync(serial, includeSystemApps: false, ct).ConfigureAwait(false);
-        status?.Report($"{packages.Count} Apps gefunden – ermittle Installationsdateien …");
+        status?.Report(Loc.Tr(
+            $"{packages.Count} Apps gefunden – ermittle Installationsdateien …",
+            $"Found {packages.Count} apps – resolving install packages …"));
 
         var paths = await _adb.ResolveApkPathsAsync(serial, packages.Select(p => p.PackageName), ct)
             .ConfigureAwait(false);
@@ -196,7 +206,9 @@ public sealed class BackupService
             ct.ThrowIfCancellationRequested();
             if (!paths.TryGetValue(package.PackageName, out var apks) || apks.Count == 0)
             {
-                plan.Warnings.Add($"Für {package.PackageName} wurde keine Installationsdatei gefunden.");
+                plan.Warnings.Add(Loc.Tr(
+                    $"Für {package.PackageName} wurde keine Installationsdatei gefunden.",
+                    $"No install package found for {package.PackageName}."));
                 continue;
             }
 
@@ -232,14 +244,17 @@ public sealed class BackupService
 
         if (mode == RootMode.None)
         {
-            var warning = "Ohne Root-Zugriff lassen sich die vollständigen App-Daten nicht sichern – " +
-                          "diese Gruppe wird übersprungen. Gesichert werden stattdessen die Apps selbst (APK).";
+            var warning = Loc.Tr(
+                "Ohne Root-Zugriff lassen sich die vollständigen App-Daten nicht sichern – diese Gruppe wird " +
+                "übersprungen. Gesichert werden stattdessen die Apps selbst (APK).",
+                "Without root access the full app data cannot be backed up – this group is skipped. " +
+                "The apps themselves (APK) are backed up instead.");
             plan.Warnings.Add(warning);
             _log.Warn(warning);
             return;
         }
 
-        status?.Report("Root erkannt – ermittle Größe der App-Daten …");
+        status?.Report(Loc.Tr("Root erkannt – ermittle Größe der App-Daten …", "Root detected – measuring app data size …"));
         var packages = await _adb.ListPackagesAsync(serial, includeSystemApps: false, ct).ConfigureAwait(false);
         var sizes = await _adb
             .GetAppDataSizesAsync(serial, packages.Select(p => p.PackageName), mode, ct)
@@ -348,10 +363,10 @@ public sealed class BackupService
 
         result.FilesSkipped = plan.SkipCount;
 
-        _log.Info($"Sicherung startet: {setDirectory}");
+        _log.Info(Loc.Tr($"Sicherung startet: {setDirectory}", $"Backup starting: {setDirectory}"));
         progress?.Report(new OperationProgress
         {
-            Phase = "Sicherung wird vorbereitet",
+            Phase = Loc.Tr("Sicherung wird vorbereitet", "Preparing backup"),
             ItemsTotal = itemsTotal,
             BytesTotal = bytesTotal
         });
@@ -384,7 +399,9 @@ public sealed class BackupService
                     Phase = CategoryCatalog.DisplayNameOf(first.CategoryId),
                     CurrentItem = batch.Count == 1
                         ? first.DisplayName
-                        : $"{first.DisplayName} (+{batch.Count - 1} weitere)",
+                        : Loc.Tr(
+                            $"{first.DisplayName} (+{batch.Count - 1} weitere)",
+                            $"{first.DisplayName} (+{batch.Count - 1} more)"),
                     ItemsDone = itemsDone,
                     ItemsTotal = itemsTotal,
                     BytesDone = batchBase + batchBytes * percent / 100,
@@ -431,7 +448,9 @@ public sealed class BackupService
         catch (OperationCanceledException)
         {
             result.Canceled = true;
-            _log.Warn("Die Sicherung wurde abgebrochen – die bereits kopierten Daten bleiben erhalten.");
+            _log.Warn(Loc.Tr(
+                "Die Sicherung wurde abgebrochen – die bereits kopierten Daten bleiben erhalten.",
+                "The backup was cancelled – everything copied so far is kept."));
         }
 
         if (!result.Canceled && options.Incremental && options.RemoveDeletedFiles)
@@ -454,8 +473,11 @@ public sealed class BackupService
             }
             catch (Exception ex)
             {
-                result.Warnings.Add("Importdateien konnten nicht erzeugt werden: " + ex.Message);
-                _log.Warn("Importdateien konnten nicht erzeugt werden: " + ex.Message);
+                var message = Loc.Tr(
+                    "Importdateien konnten nicht erzeugt werden: " + ex.Message,
+                    "Import files could not be created: " + ex.Message);
+                result.Warnings.Add(message);
+                _log.Warn(message);
             }
         }
 
@@ -483,7 +505,7 @@ public sealed class BackupService
         {
             progress?.Report(new OperationProgress
             {
-                Phase = "Archiv wird erstellt",
+                Phase = Loc.Tr("Archiv wird erstellt", "Creating archive"),
                 ItemsDone = itemsTotal,
                 ItemsTotal = itemsTotal,
                 BytesDone = bytesTotal,
@@ -500,16 +522,18 @@ public sealed class BackupService
                 manifest.HasArchive = true;
                 manifest.ArchiveEncrypted = !string.IsNullOrEmpty(options.ArchivePassword);
                 manifest.Save(setDirectory);
-                _log.Info($"Archiv erstellt: {archive}");
+                _log.Info(Loc.Tr($"Archiv erstellt: {archive}", $"Archive created: {archive}"));
             }
             catch (Exception ex)
             {
-                result.Warnings.Add("Das Archiv konnte nicht erstellt werden: " + ex.Message);
-                _log.Error("Archiv konnte nicht erstellt werden", ex);
+                result.Warnings.Add(Loc.Tr(
+                    "Das Archiv konnte nicht erstellt werden: " + ex.Message,
+                    "The archive could not be created: " + ex.Message));
+                _log.Error(Loc.Tr("Archiv konnte nicht erstellt werden", "Archive could not be created"), ex);
             }
         }
 
-        _log.Info("Sicherung beendet: " + result.SummaryText);
+        _log.Info(Loc.Tr("Sicherung beendet: ", "Backup finished: ") + result.SummaryText);
         return result;
     }
 
@@ -602,7 +626,9 @@ public sealed class BackupService
 
             if (!File.Exists(localPath))
             {
-                _log.Warn($"Konnte {item.RemotePath} nicht kopieren: {pull.ErrorSummary}");
+                _log.Warn(Loc.Tr(
+                    $"Konnte {item.RemotePath} nicht kopieren: {pull.ErrorSummary}",
+                    $"Could not copy {item.RemotePath}: {pull.ErrorSummary}"));
                 results.Add(null);
                 continue;
             }
@@ -650,7 +676,9 @@ public sealed class BackupService
                 var pull = await _adb.PullAsync(serial, item.RemotePath, localPath, ct).ConfigureAwait(false);
                 if (!File.Exists(localPath))
                 {
-                    _log.Warn($"Konnte {item.RemotePath} nicht kopieren: {pull.ErrorSummary}");
+                    _log.Warn(Loc.Tr(
+                        $"Konnte {item.RemotePath} nicht kopieren: {pull.ErrorSummary}",
+                        $"Could not copy {item.RemotePath}: {pull.ErrorSummary}"));
                     return null;
                 }
 
@@ -691,7 +719,9 @@ public sealed class BackupService
 
                 if (!File.Exists(localPath) || new FileInfo(localPath).Length < 1024)
                 {
-                    _log.Warn($"Keine App-Daten für {item.PackageName}: {export.ErrorSummary}");
+                    _log.Warn(Loc.Tr(
+                        $"Keine App-Daten für {item.PackageName}: {export.ErrorSummary}",
+                        $"No app data for {item.PackageName}: {export.ErrorSummary}"));
                     TryDelete(localPath);
                     return null;
                 }
@@ -713,14 +743,18 @@ public sealed class BackupService
 
             case BackupEntryType.LegacyAppData:
             {
-                _log.Info("Bitte die Sicherung am Gerät bestätigen (App-Daten über adb backup).");
+                _log.Info(Loc.Tr(
+                    "Bitte die Sicherung am Gerät bestätigen (App-Daten über adb backup).",
+                    "Please confirm the backup on the device (app data via adb backup)."));
                 var backup = await _adb
                     .LegacyBackupAsync(serial, localPath, options.LegacyBackupWithApks, includeSharedStorage: false, ct)
                     .ConfigureAwait(false);
 
                 if (!File.Exists(localPath) || new FileInfo(localPath).Length <= 512)
                 {
-                    _log.Warn("Es wurden keine App-Daten geliefert: " + backup.ErrorSummary);
+                    _log.Warn(Loc.Tr(
+                        "Es wurden keine App-Daten geliefert: " + backup.ErrorSummary,
+                        "No app data was delivered: " + backup.ErrorSummary));
                     return null;
                 }
 
@@ -745,7 +779,9 @@ public sealed class BackupService
                     text.Contains("Permission Denial", StringComparison.OrdinalIgnoreCase) ||
                     text.Trim().Length == 0)
                 {
-                    _log.Warn($"Export von {item.RemotePath} nicht möglich: {query.ErrorSummary}");
+                    _log.Warn(Loc.Tr(
+                        $"Export von {item.RemotePath} nicht möglich: {query.ErrorSummary}",
+                        $"Export of {item.RemotePath} not possible: {query.ErrorSummary}"));
                     return null;
                 }
 
@@ -758,7 +794,9 @@ public sealed class BackupService
                     var csvPath = Path.ChangeExtension(localPath, ".csv");
                     await File.WriteAllTextAsync(csvPath, ContentRowParser.ToCsv(rows), Encoding.UTF8, ct)
                         .ConfigureAwait(false);
-                    _log.Info($"{item.DisplayName}: {rows.Count} Datensätze exportiert.");
+                    _log.Info(Loc.Tr(
+                        $"{item.DisplayName}: {rows.Count} Datensätze exportiert.",
+                        $"{item.DisplayName}: exported {rows.Count} records."));
                 }
 
                 var info = new FileInfo(localPath);
@@ -779,7 +817,9 @@ public sealed class BackupService
                 var dump = await _adb.DumpSettingsAsync(serial, item.Argument ?? "system", ct).ConfigureAwait(false);
                 if (dump.StandardOutput.Trim().Length == 0)
                 {
-                    _log.Warn($"Einstellungen '{item.Argument}' konnten nicht gelesen werden.");
+                    _log.Warn(Loc.Tr(
+                        $"Einstellungen '{item.Argument}' konnten nicht gelesen werden.",
+                        $"Settings '{item.Argument}' could not be read."));
                     return null;
                 }
 
@@ -839,13 +879,17 @@ public sealed class BackupService
             }
             catch (IOException ex)
             {
-                result.Warnings.Add($"{entry.RelativePath} konnte nicht entfernt werden: {ex.Message}");
+                result.Warnings.Add(Loc.Tr(
+                    $"{entry.RelativePath} konnte nicht entfernt werden: {ex.Message}",
+                    $"{entry.RelativePath} could not be removed: {ex.Message}"));
             }
         }
 
         if (removed > 0)
         {
-            _log.Info($"{removed} auf dem Gerät gelöschte Dateien wurden auch aus der Sicherung entfernt.");
+            _log.Info(Loc.Tr(
+                $"{removed} auf dem Gerät gelöschte Dateien wurden auch aus der Sicherung entfernt.",
+                $"{removed} files deleted on the device were removed from the backup as well."));
         }
     }
 
@@ -886,60 +930,102 @@ public sealed class BackupService
     private static void WriteMigrationGuide(string setDirectory, BackupManifest manifest)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Umzug auf ein neues Telefon");
+        builder.AppendLine(Loc.Tr("Umzug auf ein neues Telefon", "Moving to a new phone"));
         builder.AppendLine(new string('=', 40));
         builder.AppendLine();
-        builder.AppendLine($"Quelle: {manifest.Device.DisplayName} ({manifest.Device.AndroidText})");
-        builder.AppendLine($"Satz:   {Path.GetFileName(setDirectory.TrimEnd(Path.DirectorySeparatorChar))}");
+        builder.AppendLine(Loc.Tr("Quelle: ", "Source: ") + $"{manifest.Device.DisplayName} ({manifest.Device.AndroidText})");
+        builder.AppendLine(Loc.Tr("Satz:   ", "Set:    ") + Path.GetFileName(setDirectory.TrimEnd(Path.DirectorySeparatorChar)));
         builder.AppendLine();
-        builder.AppendLine("1. Neues Telefon einrichten, mit demselben Google-Konto anmelden.");
-        builder.AppendLine("2. Entwickleroptionen und USB-Debugging am neuen Telefon aktivieren.");
-        builder.AppendLine("3. In Pixel Backup auf 'Wiederherstellen' wechseln, diesen Satz wählen");
-        builder.AppendLine("   und die gewünschten Gruppen zurückspielen.");
+        builder.AppendLine(Loc.Tr(
+            "1. Neues Telefon einrichten, mit demselben Google-Konto anmelden.",
+            "1. Set up the new phone and sign in with the same Google account."));
+        builder.AppendLine(Loc.Tr(
+            "2. Entwickleroptionen und USB-Debugging am neuen Telefon aktivieren.",
+            "2. Enable developer options and USB debugging on the new phone."));
+        builder.AppendLine(Loc.Tr(
+            "3. In Pixel Backup auf 'Wiederherstellen' wechseln, diesen Satz wählen",
+            "3. Switch to 'Restore' in Pixel Backup, pick this set"));
+        builder.AppendLine(Loc.Tr(
+            "   und die gewünschten Gruppen zurückspielen.",
+            "   and restore the groups you need."));
         builder.AppendLine();
 
         var hasImportFiles = manifest.Entries.Any(e => e.Type == BackupEntryType.ImportFile);
         if (hasImportFiles)
         {
-            builder.AppendLine("Importdateien in diesem Satz (Ordner 'data'):");
+            builder.AppendLine(Loc.Tr(
+                "Importdateien in diesem Satz (Ordner 'data'):",
+                "Import files in this set (folder 'data'):"));
             foreach (var entry in manifest.Entries.Where(e => e.Type == BackupEntryType.ImportFile))
             {
                 builder.AppendLine("   - " + Path.GetFileName(entry.RelativePath));
             }
 
             builder.AppendLine();
-            builder.AppendLine("   Beim Wiederherstellen legt Pixel Backup diese Dateien unter");
-            builder.AppendLine("   /sdcard/PixelBackup-Import auf dem neuen Telefon ab. Danach:");
-            builder.AppendLine("   - kontakte.vcf  ▸ Kontakte-App ▸ Einstellungen ▸ Importieren ▸ .vcf-Datei");
-            builder.AppendLine("   - kalender.ics  ▸ Kalender-App bzw. calendar.google.com ▸ Importieren");
-            builder.AppendLine("   - sms.xml / anrufliste.xml ▸ App 'SMS Backup & Restore' ▸ Wiederherstellen");
+            builder.AppendLine(Loc.Tr(
+                "   Beim Wiederherstellen legt Pixel Backup diese Dateien unter",
+                "   During a restore Pixel Backup places these files in"));
+            builder.AppendLine(Loc.Tr(
+                "   /sdcard/PixelBackup-Import auf dem neuen Telefon ab. Danach:",
+                "   /sdcard/PixelBackup-Import on the new phone. Then:"));
+            builder.AppendLine(Loc.Tr(
+                "   - kontakte.vcf  ▸ Kontakte-App ▸ Einstellungen ▸ Importieren ▸ .vcf-Datei",
+                "   - kontakte.vcf  ▸ Contacts app ▸ Settings ▸ Import ▸ .vcf file"));
+            builder.AppendLine(Loc.Tr(
+                "   - kalender.ics  ▸ Kalender-App bzw. calendar.google.com ▸ Importieren",
+                "   - kalender.ics  ▸ Calendar app or calendar.google.com ▸ Import"));
+            builder.AppendLine(Loc.Tr(
+                "   - sms.xml / anrufliste.xml ▸ App 'SMS Backup & Restore' ▸ Wiederherstellen",
+                "   - sms.xml / anrufliste.xml ▸ app 'SMS Backup & Restore' ▸ Restore"));
             builder.AppendLine();
         }
 
         if (manifest.Entries.Any(e => e.Type == BackupEntryType.RootAppData))
         {
-            builder.AppendLine("App-Daten (Root): Die tar-Archive im Ordner 'appdata-root' lassen sich nur auf");
-            builder.AppendLine("ein ebenfalls gerootetes Gerät zurückspielen. Reihenfolge: erst die App");
-            builder.AppendLine("installieren, dann die Daten zurückspielen.");
+            builder.AppendLine(Loc.Tr(
+                "App-Daten (Root): Die tar-Archive im Ordner 'appdata-root' lassen sich nur auf",
+                "App data (root): the tar archives in folder 'appdata-root' can only be restored to"));
+            builder.AppendLine(Loc.Tr(
+                "ein ebenfalls gerootetes Gerät zurückspielen. Reihenfolge: erst die App",
+                "a device that is rooted as well. Order: install the app first,"));
+            builder.AppendLine(Loc.Tr(
+                "installieren, dann die Daten zurückspielen.",
+                "then restore its data."));
             builder.AppendLine();
         }
         else
         {
-            builder.AppendLine("Hinweis zu App-Daten: Ohne Root kann kein PC-Werkzeug die Daten installierter");
-            builder.AppendLine("Apps auslesen – das verhindert Android seit Version 12 grundsätzlich.");
-            builder.AppendLine("Für Spielstände, Chatverläufe und Einstellungen deshalb zusätzlich nutzen:");
-            builder.AppendLine("   - die Android-Übertragung beim Ersteinrichten des neuen Telefons");
-            builder.AppendLine("     (Kabel oder WLAN) – sie überträgt Apps samt Daten;");
-            builder.AppendLine("   - die Sicherung der jeweiligen App (z. B. WhatsApp ▸ Google Drive).");
+            builder.AppendLine(Loc.Tr(
+                "Hinweis zu App-Daten: Ohne Root kann kein PC-Werkzeug die Daten installierter",
+                "About app data: without root no PC tool can read the data of installed apps –"));
+            builder.AppendLine(Loc.Tr(
+                "Apps auslesen – das verhindert Android seit Version 12 grundsätzlich.",
+                "Android has blocked that outright since version 12."));
+            builder.AppendLine(Loc.Tr(
+                "Für Spielstände, Chatverläufe und Einstellungen deshalb zusätzlich nutzen:",
+                "For saved games, chat histories and settings use in addition:"));
+            builder.AppendLine(Loc.Tr(
+                "   - die Android-Übertragung beim Ersteinrichten des neuen Telefons",
+                "   - the Android transfer while setting up the new phone"));
+            builder.AppendLine(Loc.Tr(
+                "     (Kabel oder WLAN) – sie überträgt Apps samt Daten;",
+                "     (cable or Wi-Fi) – it carries apps together with their data;"));
+            builder.AppendLine(Loc.Tr(
+                "   - die Sicherung der jeweiligen App (z. B. WhatsApp ▸ Google Drive).",
+                "   - each app's own backup (for example WhatsApp ▸ Google Drive)."));
             builder.AppendLine();
         }
 
-        builder.AppendLine("Die Dateien dieses Satzes liegen unverändert im Ordner 'files' und lassen sich");
-        builder.AppendLine("auch ohne Pixel Backup weiterverwenden.");
+        builder.AppendLine(Loc.Tr(
+            "Die Dateien dieses Satzes liegen unverändert im Ordner 'files' und lassen sich",
+            "The files of this set sit unchanged in the 'files' folder and can be used"));
+        builder.AppendLine(Loc.Tr(
+            "auch ohne Pixel Backup weiterverwenden.",
+            "without Pixel Backup as well."));
 
         try
         {
-            File.WriteAllText(Path.Combine(setDirectory, "umzug-anleitung.txt"), builder.ToString(), Encoding.UTF8);
+            File.WriteAllText(Path.Combine(setDirectory, MigrationGuideFileName), builder.ToString(), Encoding.UTF8);
         }
         catch (IOException)
         {
@@ -949,27 +1035,27 @@ public sealed class BackupService
     private static void WriteReport(string setDirectory, BackupManifest manifest, BackupResult result)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Pixel Backup – Sicherungsbericht");
+        builder.AppendLine(Loc.Tr("Pixel Backup – Sicherungsbericht", "Pixel Backup – backup report"));
         builder.AppendLine(new string('=', 40));
-        builder.AppendLine($"Gerät:        {manifest.Device.DisplayName} ({manifest.Device.Serial})");
+        builder.AppendLine(Loc.Tr("Gerät:        ", "Device:       ") + $"{manifest.Device.DisplayName} ({manifest.Device.Serial})");
         builder.AppendLine($"Android:      {manifest.Device.AndroidText}");
-        builder.AppendLine($"Erstellt:     {manifest.CreatedUtc.ToLocalTime():dd.MM.yyyy HH:mm}");
-        builder.AppendLine($"Aktualisiert: {manifest.UpdatedUtc.ToLocalTime():dd.MM.yyyy HH:mm}");
-        builder.AppendLine($"Kategorien:   {string.Join(", ", manifest.Categories.Select(CategoryCatalog.DisplayNameOf))}");
-        builder.AppendLine($"Umfang:       {manifest.FileCount:N0} Elemente, {Humanize.Bytes(manifest.TotalBytes)}");
-        builder.AppendLine($"Letzter Lauf: {result.SummaryText}");
+        builder.AppendLine(Loc.Tr("Erstellt:     ", "Created:      ") + $"{manifest.CreatedUtc.ToLocalTime():g}");
+        builder.AppendLine(Loc.Tr("Aktualisiert: ", "Updated:      ") + $"{manifest.UpdatedUtc.ToLocalTime():g}");
+        builder.AppendLine(Loc.Tr("Kategorien:   ", "Groups:       ") + string.Join(", ", manifest.Categories.Select(CategoryCatalog.DisplayNameOf)));
+        builder.AppendLine(Loc.Tr("Umfang:       ", "Size:         ") + $"{Humanize.Items(manifest.FileCount)}, {Humanize.Bytes(manifest.TotalBytes)}");
+        builder.AppendLine(Loc.Tr("Letzter Lauf: ", "Last run:     ") + result.SummaryText);
         builder.AppendLine();
 
         foreach (var group in manifest.Entries.GroupBy(e => e.CategoryId))
         {
             builder.AppendLine(
-                $"  {CategoryCatalog.DisplayNameOf(group.Key),-24} {group.Count(),8:N0} Elemente   {Humanize.Bytes(group.Sum(e => e.Size)),12}");
+                $"  {CategoryCatalog.DisplayNameOf(group.Key),-30} {group.Count(),8:N0} {Loc.Tr("Elemente", "items"),-8} {Humanize.Bytes(group.Sum(e => e.Size)),12}");
         }
 
         if (result.Warnings.Count > 0)
         {
             builder.AppendLine();
-            builder.AppendLine("Hinweise:");
+            builder.AppendLine(Loc.Tr("Hinweise:", "Notes:"));
             foreach (var warning in result.Warnings.Distinct().Take(200))
             {
                 builder.AppendLine("  - " + warning);
@@ -978,7 +1064,7 @@ public sealed class BackupService
 
         try
         {
-            File.WriteAllText(Path.Combine(setDirectory, "bericht.txt"), builder.ToString(), Encoding.UTF8);
+            File.WriteAllText(Path.Combine(setDirectory, ReportFileName), builder.ToString(), Encoding.UTF8);
         }
         catch (IOException)
         {

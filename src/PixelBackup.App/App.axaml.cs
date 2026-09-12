@@ -16,6 +16,10 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var session = new AppSession();
+
+            // Sprache steht bereits fest (AppSession), jetzt noch das Erscheinungsbild.
+            session.ApplyTheme();
+
             var viewModel = new MainWindowViewModel(session);
 
             desktop.MainWindow = new MainWindow { DataContext = viewModel };

@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using PixelBackup.App.Mvvm;
 using PixelBackup.Core.Adb;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Services;
 
@@ -23,7 +24,7 @@ public sealed class AppSession : ObservableObject, IDisposable
     private DeviceWatcher? _watcher;
     private AdbDevice? _selectedDevice;
     private DeviceInfo? _deviceInfo;
-    private string _adbStatus = "adb wird gesucht …";
+    private string _adbStatus = Loc.Tr("adb wird gesucht …", "looking for adb …");
     private bool _adbAvailable;
     private bool _isBusy;
     private string _busyDescription = string.Empty;
@@ -31,10 +32,34 @@ public sealed class AppSession : ObservableObject, IDisposable
     public AppSession()
     {
         Settings = _settingsStore.Load();
+
+        // Sprache zuerst: alle folgenden Meldungen sollen schon stimmen.
+        ApplyLanguage();
+
         _fileLog = new FileLogSink(Path.Combine(_settingsStore.Directory, "logs"));
         Log = new CompositeLogSink(_fileLog, new DelegateLogSink(AppendLogEntry));
         Repository = new BackupRepository(Settings.BackupRoot, Log);
+        Components = new ComponentService(this);
     }
+
+    /// <summary>Prüfung und Einrichtung von adb und USB-Treiber.</summary>
+    public ComponentService Components { get; }
+
+    /// <summary>Übernimmt die eingestellte Sprache (oder die des Systems).</summary>
+    public void ApplyLanguage()
+    {
+        Localizer.I.Lang = Settings.Language switch
+        {
+            LanguageSetting.German => AppLanguage.De,
+            LanguageSetting.English => AppLanguage.En,
+            _ => Localizer.DetectFromSystem()
+        };
+
+        Localizer.I.ApplyCulture();
+    }
+
+    /// <summary>Übernimmt das eingestellte Erscheinungsbild (oder das des Systems).</summary>
+    public void ApplyTheme() => ThemeService.Apply(Settings.Theme);
 
     public AppSettings Settings { get; }
 
@@ -136,8 +161,23 @@ public sealed class AppSession : ObservableObject, IDisposable
 
     public async Task InitializeAsync()
     {
-        Log.Info("Pixel Backup gestartet.");
+        Log.Info(Loc.Tr("Pixel Backup gestartet.", "Pixel Backup started."));
+        Log.Info(Loc.Tr(
+            $"Sprache: {(Localizer.I.Lang == AppLanguage.De ? "Deutsch" : "Englisch")}, Erscheinungsbild: {ThemeService.DescribeDetected()}",
+            $"Language: {(Localizer.I.Lang == AppLanguage.De ? "German" : "English")}, appearance: {ThemeService.DescribeDetected()}"));
+
+        // Fehlt adb, wird es auf Wunsch gleich eingerichtet.
+        if (Settings.AutoInstallAdb && AdbLocator.Locate(Settings.AdbPath) is null)
+        {
+            await Components.EnsureAdbAsync().ConfigureAwait(false);
+        }
+
         await ConnectAdbAsync().ConfigureAwait(false);
+
+        if (Settings.CheckComponentsOnStart)
+        {
+            _ = Components.RefreshAsync();
+        }
     }
 
     /// <summary>Sucht adb, startet den Server und beginnt mit der Geräteüberwachung.</summary>
@@ -147,7 +187,9 @@ public sealed class AppSession : ObservableObject, IDisposable
         if (path is null)
         {
             AdbAvailable = false;
-            AdbStatus = "adb wurde nicht gefunden. Bitte die Android-Plattform-Tools installieren oder den Pfad in den Einstellungen setzen.";
+            AdbStatus = Loc.Tr(
+                "adb wurde nicht gefunden. Bitte unter „Komponenten“ einrichten lassen.",
+                "adb was not found. Please set it up under \"Components\".");
             Log.Warn(AdbStatus);
             return;
         }
@@ -160,13 +202,13 @@ public sealed class AppSession : ObservableObject, IDisposable
             var version = await _adb.GetVersionAsync().ConfigureAwait(false);
             AdbAvailable = true;
             AdbStatus = $"{version} · {path}";
-            Log.Info("adb bereit: " + AdbStatus);
+            Log.Info(Loc.Tr("adb bereit: ", "adb ready: ") + AdbStatus);
         }
         catch (Exception ex)
         {
             AdbAvailable = false;
-            AdbStatus = "adb konnte nicht gestartet werden: " + ex.Message;
-            Log.Error("adb konnte nicht gestartet werden", ex);
+            AdbStatus = Loc.Tr("adb konnte nicht gestartet werden: ", "adb could not be started: ") + ex.Message;
+            Log.Error(Loc.Tr("adb konnte nicht gestartet werden", "adb could not be started"), ex);
             return;
         }
 
@@ -213,7 +255,7 @@ public sealed class AppSession : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Error("Geräteliste konnte nicht gelesen werden", ex);
+            Log.Error(Loc.Tr("Geräteliste konnte nicht gelesen werden", "The device list could not be read"), ex);
         }
     }
 
@@ -253,17 +295,17 @@ public sealed class AppSession : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Error("Geräteinformationen konnten nicht gelesen werden", ex);
+            Log.Error(Loc.Tr("Geräteinformationen konnten nicht gelesen werden", "The device information could not be read"), ex);
         }
     }
 
     // --------------------------------------------------------------- Dienste
 
     public BackupService CreateBackupService() =>
-        new(_adb ?? throw new InvalidOperationException("adb ist nicht verfügbar."), Log);
+        new(_adb ?? throw new InvalidOperationException(Loc.Tr("adb ist nicht verfügbar.", "adb is not available.")), Log);
 
     public RestoreService CreateRestoreService() =>
-        new(_adb ?? throw new InvalidOperationException("adb ist nicht verfügbar."), Log);
+        new(_adb ?? throw new InvalidOperationException(Loc.Tr("adb ist nicht verfügbar.", "adb is not available.")), Log);
 
     public VerificationService CreateVerificationService() => new(Log);
 
@@ -277,11 +319,11 @@ public sealed class AppSession : ObservableObject, IDisposable
         {
             Repository.Root = Settings.BackupRoot;
             _settingsStore.Save(Settings);
-            Log.Debug("Einstellungen gespeichert.");
+            Log.Debug(Loc.Tr("Einstellungen gespeichert.", "Settings saved."));
         }
         catch (Exception ex)
         {
-            Log.Error("Einstellungen konnten nicht gespeichert werden", ex);
+            Log.Error(Loc.Tr("Einstellungen konnten nicht gespeichert werden", "Settings could not be saved"), ex);
         }
     }
 

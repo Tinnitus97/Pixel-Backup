@@ -1,5 +1,6 @@
 using System.Text;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Util;
 
@@ -77,7 +78,9 @@ public static class ImportFileBuilder
                 Sha256 = await Hashing.Sha256FileAsync(target, ct).ConfigureAwait(false)
             });
 
-            log.Info($"Importdatei erzeugt: {fileName} ({Humanize.Bytes(info.Length)})");
+            log.Info(Loc.Tr(
+                $"Importdatei erzeugt: {fileName} ({Humanize.Bytes(info.Length)})",
+                $"Import file created: {fileName} ({Humanize.Bytes(info.Length)})"));
         }
 
         return created;

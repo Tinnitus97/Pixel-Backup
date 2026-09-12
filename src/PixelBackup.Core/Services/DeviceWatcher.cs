@@ -1,5 +1,6 @@
 using PixelBackup.Core.Adb;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 
 namespace PixelBackup.Core.Services;
 
@@ -71,7 +72,9 @@ public sealed class DeviceWatcher : IDisposable
                     {
                         if (knownReady.Add(device.Serial))
                         {
-                            _log.Info($"Gerät verbunden: {device.DisplayName} ({device.Serial})");
+                            _log.Info(Loc.Tr(
+                                $"Gerät verbunden: {device.DisplayName} ({device.Serial})",
+                                $"Device connected: {device.DisplayName} ({device.Serial})"));
                             DeviceConnected?.Invoke(device);
                         }
                     }
@@ -85,7 +88,7 @@ public sealed class DeviceWatcher : IDisposable
             }
             catch (Exception ex)
             {
-                _log.Debug("Geräteüberwachung: " + ex.Message);
+                _log.Debug(Loc.Tr("Geräteüberwachung: ", "Device watcher: ") + ex.Message);
             }
 
             try

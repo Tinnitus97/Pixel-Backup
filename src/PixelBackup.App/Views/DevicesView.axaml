@@ -5,13 +5,12 @@
   <ScrollViewer>
     <StackPanel Spacing="4">
 
-      <TextBlock Text="Gerät" Classes="h1" />
-      <TextBlock Classes="hint"
-                 Text="Pixel Backup spricht jedes Android-Gerät direkt über adb an – unabhängig vom Hersteller." />
+      <TextBlock Text="{Binding Title}" Classes="h1" />
+      <TextBlock Classes="hint" Text="{Binding PageHint}" />
 
       <Border Classes="card" Margin="0,14,0,12">
         <StackPanel Spacing="10">
-          <TextBlock Text="Verbundene Geräte" Classes="h2" Margin="0,0,0,4" />
+          <TextBlock Text="{Binding SectionDevices}" Classes="h2" Margin="0,0,0,4" />
 
           <ListBox ItemsSource="{Binding Session.Devices}"
                    SelectedItem="{Binding Session.SelectedDevice, Mode=TwoWay}"
@@ -30,36 +29,36 @@
           </ListBox>
 
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Aktualisieren" Command="{Binding RefreshCommand}" />
-            <Button Content="adb-Server neu starten" Command="{Binding RestartAdbCommand}" />
+            <Button Content="{Binding LabelRefresh}" Command="{Binding RefreshCommand}" />
+            <Button Content="{Binding LabelRestartAdb}" Command="{Binding RestartAdbCommand}" />
           </StackPanel>
         </StackPanel>
       </Border>
 
       <Border Classes="card" IsVisible="{Binding Session.HasDevice}">
         <StackPanel Spacing="6">
-          <TextBlock Text="Geräteinformationen" Classes="h2" Margin="0,0,0,4" />
+          <TextBlock Text="{Binding SectionInfo}" Classes="h2" Margin="0,0,0,4" />
 
           <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Modell" Classes="hint" />
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding LabelModel}" Classes="hint" />
             <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Session.DeviceInfo.DisplayName}" />
 
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="Android" Classes="hint" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding LabelAndroid}" Classes="hint" />
             <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Session.DeviceInfo.AndroidText}" />
 
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Build" Classes="hint" />
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding LabelBuild}" Classes="hint" />
             <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Session.DeviceInfo.BuildId}" />
 
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="Sicherheitspatch" Classes="hint" />
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding LabelPatch}" Classes="hint" />
             <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Session.DeviceInfo.SecurityPatch}" />
 
-            <TextBlock Grid.Row="4" Grid.Column="0" Text="Speicher" Classes="hint" />
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding LabelStorage}" Classes="hint" />
             <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Session.DeviceInfo.StorageText}" />
 
-            <TextBlock Grid.Row="5" Grid.Column="0" Text="Seriennummer" Classes="hint" />
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding LabelSerial}" Classes="hint" />
             <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Session.DeviceInfo.Serial}" />
 
-            <TextBlock Grid.Row="6" Grid.Column="0" Text="Root-Zugriff" Classes="hint" />
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding LabelRoot}" Classes="hint" />
             <TextBlock Grid.Row="6" Grid.Column="1"
                        Text="{Binding Session.DeviceInfo.RootText}"
                        TextWrapping="Wrap" />
@@ -69,23 +68,22 @@
 
       <Border Classes="card">
         <StackPanel Spacing="10">
-          <TextBlock Text="Drahtlos verbinden" Classes="h2" Margin="0,0,0,4" />
-          <TextBlock Classes="hint"
-                     Text="Gerät einmal per USB anschließen, den WLAN-Modus aktivieren und das Kabel danach abziehen." />
+          <TextBlock Text="{Binding SectionWireless}" Classes="h2" Margin="0,0,0,4" />
+          <TextBlock Classes="hint" Text="{Binding WirelessHint}" />
 
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="240"
                      Watermark="192.168.1.50:5555"
                      Text="{Binding WirelessAddress, Mode=TwoWay}" />
-            <Button Content="Verbinden" Command="{Binding ConnectWirelessCommand}" />
-            <Button Content="WLAN-Modus aktivieren" Command="{Binding EnableWirelessCommand}" />
+            <Button Content="{Binding LabelConnect}" Command="{Binding ConnectWirelessCommand}" />
+            <Button Content="{Binding LabelEnableWireless}" Command="{Binding EnableWirelessCommand}" />
           </StackPanel>
         </StackPanel>
       </Border>
 
       <Border Classes="card">
         <StackPanel Spacing="6">
-          <TextBlock Text="Erste Schritte" Classes="h2" Margin="0,0,0,4" />
+          <TextBlock Text="{Binding SectionFirstSteps}" Classes="h2" Margin="0,0,0,4" />
           <TextBlock Text="{Binding SetupHint}" Classes="hint" />
         </StackPanel>
       </Border>

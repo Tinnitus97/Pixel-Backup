@@ -1,4 +1,5 @@
 using PixelBackup.Core.Adb;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Util;
 
 namespace PixelBackup.Core.Model;
@@ -73,17 +74,12 @@ public sealed class BackupPlan
             g.Count(),
             g.Count(i => i.Action == PlanAction.Copy),
             g.Sum(i => Math.Max(0, i.Size))))
-        .OrderBy(s => CategoryCatalog.IndexOf(CategoryCatalog.ById(s.CategoryId) ?? new BackupCategory
-        {
-            Id = s.CategoryId,
-            DisplayName = s.CategoryId,
-            Description = string.Empty
-        }))
+        .OrderBy(s => CategoryCatalog.IndexOf(s.CategoryId))
         .ToList();
 
     public string SummaryText =>
-        $"{Humanize.Count(CopyCount, "Element", "Elemente")} · {Humanize.Bytes(BytesToCopy)}" +
-        (SkipCount > 0 ? $" (unverändert: {SkipCount})" : string.Empty);
+        $"{Humanize.Items(CopyCount)} · {Humanize.Bytes(BytesToCopy)}" +
+        (SkipCount > 0 ? Loc.Tr($" (unverändert: {SkipCount})", $" ({SkipCount} unchanged)") : string.Empty);
 }
 
 public sealed record CategorySummary(string CategoryId, int ItemCount, int CopyCount, long Bytes)

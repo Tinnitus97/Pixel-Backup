@@ -45,9 +45,17 @@ OnePlus, Motorola, Sony, Fairphone und andere.
 
 ![Ansicht „Sicherungen“](docs/screenshots/05-sicherungen.png)
 
-**Einstellungen** (dunkles Erscheinungsbild)
+**Komponenten** – adb und USB-Treiber prüfen, installieren und aktualisieren
 
-![Ansicht „Einstellungen“](docs/screenshots/06-einstellungen-dunkel.png)
+![Ansicht „Komponenten“](docs/screenshots/06-komponenten.png)
+
+**Einstellungen** (dunkles Erscheinungsbild) – Sprache, Erscheinungsbild, Ordner, Automatik
+
+![Ansicht „Einstellungen“](docs/screenshots/07-einstellungen-dunkel.png)
+
+**English** – dieselbe Anwendung nach Umschalten auf Englisch (oder auf einem englischen System)
+
+![Backup view in English](docs/screenshots/08-backup-english-dark.png)
 
 ---
 
@@ -111,6 +119,21 @@ Beim Wiederherstellen legt Pixel Backup diese Dateien unter `/sdcard/PixelBackup
 Zielgerät ab. Jeder Sicherungssatz enthält zusätzlich `umzug-anleitung.txt` mit den Schritten für
 genau diesen Satz.
 
+### Sprache, Erscheinungsbild und Komponenten
+
+* **Deutsch und Englisch** – die Oberfläche startet in der **Anzeigesprache des Systems**
+  (Deutsch bei einem deutschen System, sonst Englisch) und lässt sich jederzeit umschalten;
+  die Umschaltung wirkt sofort, ohne Neustart.
+* **Hell und dunkel** – Voreinstellung ist „Wie das System“: Pixel Backup übernimmt den
+  Hell-/Dunkelmodus des Betriebssystems und zeigt an, was erkannt wurde. Feste Wahl ist möglich.
+* **Komponenten-Seite** – prüft die Android-Plattform-Tools (adb) und unter Windows den
+  Google-USB-Treiber:
+  * fehlt adb, wird es **beim Start automatisch** aus Googles offizieller Paketliste geladen
+    (SHA-1-geprüft) und eingerichtet;
+  * gibt es eine neuere Fassung, erscheint ein **Update-Angebot** (kein stiller Austausch);
+  * meldet Windows ein Problemgerät oder fehlt der USB-Treiber, lässt er sich von hier aus
+    laden und über `pnputil` installieren.
+
 ### Weitere Funktionen
 * **Analyse vorab** – zeigt je Gruppe Anzahl und Größe an, bevor etwas übertragen wird.
 * **Inkrementelle Sicherung** – überträgt nur neue und geänderte Dateien (Vergleich über Größe und
@@ -134,11 +157,15 @@ genau diesen Satz.
 ## Voraussetzungen
 
 * Windows 10/11 (das Programm läuft dank Avalonia auch unter Linux und macOS).
-* [.NET 8 SDK](https://dotnet.microsoft.com/download) zum Bauen bzw. .NET 8 Desktop Runtime zum Ausführen.
-* [Android-Plattform-Tools](https://developer.android.com/tools/releases/platform-tools) (`adb`).
-  Pixel Backup sucht `adb` automatisch in PATH, im Android-SDK, neben der Anwendung
-  (`platform-tools\adb.exe`) und an den üblichen Installationsorten. Alternativ lässt sich der Pfad
-  in den Einstellungen setzen.
+* [.NET 10 SDK](https://dotnet.microsoft.com/download) zum Bauen bzw. die .NET 10 Desktop Runtime
+  zum Ausführen (dieselbe Grundlage wie OfficeInstall).
+* **Android-Plattform-Tools (`adb`) – müssen nicht von Hand installiert werden.**
+  Pixel Backup sucht `adb` in PATH, im Android-SDK, neben der Anwendung und an den üblichen
+  Orten; findet es nichts, lädt es die Plattform-Tools beim Start selbst herunter
+  (`%LOCALAPPDATA%\PixelBackup\platform-tools`). Der Pfad lässt sich in den Einstellungen
+  jederzeit überschreiben.
+* **USB-Treiber** – nur unter Windows und nur, wenn ein Gerät nicht erkannt wird; die
+  Komponenten-Seite erkennt das und richtet den Google-Treiber ein.
 * Am Gerät: **Entwickleroptionen** aktivieren (siebenmal auf die Build-Nummer tippen) und
   **USB-Debugging** einschalten. Beim ersten Anschließen die Abfrage am Telefon bestätigen.
 
@@ -151,6 +178,9 @@ dotnet restore
 dotnet build -c Release
 dotnet run --project src/PixelBackup.App
 ```
+
+Die Oberfläche baut auf Avalonia 11.2.3 auf; ein Wechsel auf Avalonia 12 ist ohne Codeänderungen
+möglich (Paketversionen in `src/PixelBackup.App/PixelBackup.App.csproj`).
 
 Eigenständige Windows-Datei erzeugen:
 
@@ -173,7 +203,8 @@ dotnet test
 2. **Sichern** – Gruppen wählen, auf *Analysieren* tippen (zeigt Umfang), dann *Sicherung starten*.
 3. **Sicherungen** – Sätze ansehen, prüfen, archivieren, löschen, Ordner öffnen.
 4. **Wiederherstellen** – Satz und Gruppen wählen, Konfliktstrategie festlegen, starten.
-5. **Einstellungen** – Zielordner, adb-Pfad, Aufbewahrung, Automatik, Erscheinungsbild.
+5. **Komponenten** – prüft adb und den USB-Treiber, installiert und aktualisiert beides.
+6. **Einstellungen** – Sprache, Erscheinungsbild, Zielordner, adb-Pfad, Aufbewahrung, Automatik.
 
 ---
 
@@ -250,7 +281,8 @@ Zurückspielen inklusive Besitzer- und SELinux-Korrektur).
 
 ```
 src/PixelBackup.Core/   Fachlogik ohne UI: adb-Hülle, Kategorien, Sicherung, Wiederherstellung,
-                        Prüfung, Archivierung, Einstellungen
+                        Prüfung, Archivierung, Einstellungen, Sprachverwaltung,
+                        Komponenten (Plattform-Tools, USB-Treiber)
 src/PixelBackup.App/    Avalonia-Oberfläche (MVVM, ohne zusätzliche MVVM-Abhängigkeit)
 tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto
 ```

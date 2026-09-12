@@ -14,7 +14,7 @@
     </ScrollViewer>
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,20,0,0">
-      <Button Content="Abbrechen" IsVisible="{Binding IsConfirm}" Click="OnCancel" />
+      <Button Content="{Binding CancelText}" IsVisible="{Binding IsConfirm}" Click="OnCancel" />
       <Button Content="{Binding OkText}" IsDefault="True" Click="OnOk" />
     </StackPanel>
   </Grid>

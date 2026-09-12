@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using PixelBackup.App.Mvvm;
 using PixelBackup.App.Services;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 using PixelBackup.Core.Services;
 using PixelBackup.Core.Util;
@@ -20,8 +21,8 @@ public sealed class LibraryViewModel : ViewModelBase
     public LibraryViewModel(AppSession session)
     {
         _session = session;
-        Title = "Sicherungen";
         Icon = "🗃";
+        UpdateTitle();
 
         RefreshCommand = new RelayCommand(Reload);
         OpenFolderCommand = new RelayCommand(
@@ -33,6 +34,14 @@ public sealed class LibraryViewModel : ViewModelBase
         CancelCommand = new RelayCommand(() => _cancellation?.Cancel(), () => IsRunning);
 
         _session.BackupsChanged += Reload;
+        Reload();
+    }
+
+    protected override void UpdateTitle() => Title = Tr("Sicherungen", "Backups");
+
+    public override void RefreshTexts()
+    {
+        base.RefreshTexts();
         Reload();
     }
 
@@ -96,37 +105,42 @@ public sealed class LibraryViewModel : ViewModelBase
         {
             if (SelectedSet is null)
             {
-                return "Noch kein Sicherungssatz ausgewählt.";
+                return Tr("Noch kein Sicherungssatz ausgewählt.", "No backup set selected yet.");
             }
 
             var manifest = SelectedSet.Manifest;
             var lines = new List<string>
             {
-                $"Gerät: {manifest.Device.DisplayName} ({manifest.Device.Serial})",
+                Tr($"Gerät: {manifest.Device.DisplayName} ({manifest.Device.Serial})",
+                   $"Device: {manifest.Device.DisplayName} ({manifest.Device.Serial})"),
                 $"Android: {manifest.Device.AndroidText}",
-                $"Erstellt: {SelectedSet.CreatedText} · aktualisiert: {SelectedSet.UpdatedText}",
-                $"Umfang: {Humanize.Count(manifest.FileCount, "Element", "Elemente")} · {SelectedSet.SizeText}",
-                $"Ordner: {SelectedSet.Directory}",
+                Tr($"Erstellt: {SelectedSet.CreatedText} · aktualisiert: {SelectedSet.UpdatedText}",
+                   $"Created: {SelectedSet.CreatedText} · updated: {SelectedSet.UpdatedText}"),
+                Tr($"Umfang: {Humanize.Items(manifest.FileCount)} · {SelectedSet.SizeText}",
+                   $"Size: {Humanize.Items(manifest.FileCount)} · {SelectedSet.SizeText}"),
+                Tr($"Ordner: {SelectedSet.Directory}", $"Folder: {SelectedSet.Directory}"),
                 string.Empty,
-                "Inhalt:"
+                Tr("Inhalt:", "Contents:")
             };
 
             foreach (var group in manifest.Entries.GroupBy(e => e.CategoryId))
             {
                 lines.Add(
-                    $"   {CategoryCatalog.DisplayNameOf(group.Key)}: {group.Count():N0} Elemente, {Humanize.Bytes(group.Sum(e => Math.Max(0, e.Size)))}");
+                    $"   {CategoryCatalog.DisplayNameOf(group.Key)}: {Humanize.Items(group.Count())}, {Humanize.Bytes(group.Sum(e => Math.Max(0, e.Size)))}");
             }
 
             if (manifest.Runs.Count > 0)
             {
                 lines.Add(string.Empty);
-                lines.Add("Läufe:");
+                lines.Add(Tr("Läufe:", "Runs:"));
                 foreach (var run in manifest.Runs.OrderByDescending(r => r.StartedUtc).Take(8))
                 {
                     lines.Add(
-                        $"   {run.StartedUtc.ToLocalTime():dd.MM.yyyy HH:mm} · {(run.Mode == BackupMode.Incremental ? "inkrementell" : "vollständig")} · " +
-                        $"{run.FilesCopied:N0} kopiert, {Humanize.Bytes(run.BytesCopied)}, {Humanize.Duration(run.Duration)}" +
-                        (run.Canceled ? " (abgebrochen)" : string.Empty));
+                        $"   {run.StartedUtc.ToLocalTime():g} · " +
+                        (run.Mode == BackupMode.Incremental ? Tr("inkrementell", "incremental") : Tr("vollständig", "full")) +
+                        Tr($" · {run.FilesCopied:N0} kopiert, ", $" · {run.FilesCopied:N0} copied, ") +
+                        $"{Humanize.Bytes(run.BytesCopied)}, {Humanize.Duration(run.Duration)}" +
+                        (run.Canceled ? Tr(" (abgebrochen)", " (cancelled)") : string.Empty));
                 }
             }
 
@@ -150,9 +164,13 @@ public sealed class LibraryViewModel : ViewModelBase
         }
 
         SelectedSet = Sets.FirstOrDefault(s => s.Directory == previous) ?? Sets.FirstOrDefault();
-        DiskUsageText = $"{Humanize.Count(Sets.Count, "Sicherungssatz", "Sicherungssätze")} · " +
-                        $"{Humanize.Bytes(_session.Repository.CalculateDiskUsage())} auf der Festplatte · " +
-                        _session.Settings.BackupRoot;
+        DiskUsageText = Tr(
+            $"{Humanize.Count(Sets.Count, "Sicherungssatz", "Sicherungssätze")} · " +
+            $"{Humanize.Bytes(_session.Repository.CalculateDiskUsage())} auf der Festplatte · " +
+            _session.Settings.BackupRoot,
+            $"{Humanize.Count(Sets.Count, "backup set", "backup sets")} · " +
+            $"{Humanize.Bytes(_session.Repository.CalculateDiskUsage())} on disk · " +
+            _session.Settings.BackupRoot);
     }
 
     private async Task DeleteAsync()
@@ -164,8 +182,9 @@ public sealed class LibraryViewModel : ViewModelBase
         }
 
         var confirmed = await DialogService.ConfirmAsync(
-            "Sicherung löschen",
-            $"Der Sicherungssatz „{set.Name}“ ({set.SizeText}) wird unwiderruflich von der Festplatte gelöscht." +
+            Tr("Sicherung löschen", "Delete backup"),
+            Tr($"Der Sicherungssatz „{set.Name}“ ({set.SizeText}) wird unwiderruflich von der Festplatte gelöscht.",
+               $"The backup set \"{set.Name}\" ({set.SizeText}) will be deleted from the disk for good.") +
             Environment.NewLine + set.Directory);
 
         if (!confirmed)
@@ -175,7 +194,7 @@ public sealed class LibraryViewModel : ViewModelBase
 
         _session.Repository.Delete(set);
         Reload();
-        StatusMessage = "Sicherungssatz gelöscht.";
+        StatusMessage = Tr("Sicherungssatz gelöscht.", "Backup set deleted.");
     }
 
     private async Task VerifyAsync()
@@ -187,7 +206,7 @@ public sealed class LibraryViewModel : ViewModelBase
         }
 
         IsRunning = true;
-        Progress.Reset("Prüfung läuft");
+        Progress.Reset(Tr("Prüfung läuft", "Verification running"));
         _cancellation = new CancellationTokenSource();
 
         try
@@ -200,15 +219,15 @@ public sealed class LibraryViewModel : ViewModelBase
             StatusMessage = result.SummaryText;
 
             var details = new List<string> { result.SummaryText };
-            AppendProblems(details, "Fehlende Dateien", result.Missing);
-            AppendProblems(details, "Abweichende Größe", result.SizeMismatch);
-            AppendProblems(details, "Abweichende Prüfsumme", result.HashMismatch);
+            AppendProblems(details, Tr("Fehlende Dateien", "Missing files"), result.Missing);
+            AppendProblems(details, Tr("Abweichende Größe", "Different size"), result.SizeMismatch);
+            AppendProblems(details, Tr("Abweichende Prüfsumme", "Different checksum"), result.HashMismatch);
 
-            await DialogService.ShowInfoAsync("Prüfergebnis", string.Join(Environment.NewLine, details));
+            await DialogService.ShowInfoAsync(Tr("Prüfergebnis", "Verification result"), string.Join(Environment.NewLine, details));
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Prüfung abgebrochen.";
+            StatusMessage = Tr("Prüfung abgebrochen.", "Verification cancelled.");
         }
         finally
         {
@@ -231,7 +250,7 @@ public sealed class LibraryViewModel : ViewModelBase
         lines.AddRange(items.Take(10).Select(i => "   " + i));
         if (items.Count > 10)
         {
-            lines.Add($"   … und {items.Count - 10} weitere");
+            lines.Add(Loc.Tr($"   … und {items.Count - 10} weitere", $"   … and {items.Count - 10} more"));
         }
     }
 
@@ -244,7 +263,7 @@ public sealed class LibraryViewModel : ViewModelBase
         }
 
         IsRunning = true;
-        Progress.Reset("Archiv wird erstellt");
+        Progress.Reset(Tr("Archiv wird erstellt", "Creating archive"));
         Progress.IsIndeterminate = true;
         _cancellation = new CancellationTokenSource();
 
@@ -254,12 +273,12 @@ public sealed class LibraryViewModel : ViewModelBase
                 .CreateArchiveAsync(set.Directory, password: null, _cancellation.Token)
                 .ConfigureAwait(true);
 
-            StatusMessage = "Archiv erstellt: " + path;
-            await DialogService.ShowInfoAsync("Archiv erstellt", path);
+            StatusMessage = Tr("Archiv erstellt: ", "Archive created: ") + path;
+            await DialogService.ShowInfoAsync(Tr("Archiv erstellt", "Archive created"), path);
         }
         catch (OperationCanceledException)
         {
-            StatusMessage = "Archivierung abgebrochen.";
+            StatusMessage = Tr("Archivierung abgebrochen.", "Archiving cancelled.");
         }
         finally
         {
@@ -280,10 +299,26 @@ public sealed class LibraryViewModel : ViewModelBase
         CancelCommand.RaiseCanExecuteChanged();
     }
 
+    #region Beschriftungen
+
+    public string LabelRefresh => Tr("Aktualisieren", "Refresh");
+
+    public string LabelOpenFolder => Tr("Ordner öffnen", "Open folder");
+
+    public string LabelVerify => Tr("Sicherung prüfen", "Verify backup");
+
+    public string LabelArchive => Tr("Als ZIP archivieren", "Archive as ZIP");
+
+    public string LabelDelete => Tr("Löschen", "Delete");
+
+    public string LabelCancel => Tr("Abbrechen", "Cancel");
+
+    #endregion
+
     private void ReportError(Exception ex)
     {
-        _session.Log.Error("Aktion fehlgeschlagen", ex);
-        StatusMessage = "Fehler: " + ex.Message;
-        _ = DialogService.ShowInfoAsync("Fehler", ex.Message);
+        _session.Log.Error(Tr("Aktion fehlgeschlagen", "Action failed"), ex);
+        StatusMessage = Tr("Fehler: ", "Error: ") + ex.Message;
+        _ = DialogService.ShowInfoAsync(Tr("Fehler", "Error"), ex.Message);
     }
 }

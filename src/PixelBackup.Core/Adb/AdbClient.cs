@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Localization;
 using PixelBackup.Core.Model;
 
 namespace PixelBackup.Core.Adb;
@@ -268,7 +269,9 @@ public sealed class AdbClient
 
         if (paths.Count > 0)
         {
-            _log.Warn($"Für {remoteDirectory} konnten keine Dateigrößen ermittelt werden – die Fortschrittsanzeige ist dort ungenau.");
+            _log.Warn(Loc.Tr(
+                $"Für {remoteDirectory} konnten keine Dateigrößen ermittelt werden – die Fortschrittsanzeige ist dort ungenau.",
+                $"No file sizes could be determined for {remoteDirectory} – progress will be rough there."));
         }
 
         return paths;
