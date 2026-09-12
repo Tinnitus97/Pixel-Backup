@@ -14,7 +14,7 @@ public static class CategoryCatalog
             Description = "Kamerabilder, Screenshots und alle weiteren Bilddateien aus DCIM und Pictures.",
             Icon = "🖼",
             Kind = BackupCategoryKind.Files,
-            RemoteDirectories = new[] { "/sdcard/DCIM", "/sdcard/Pictures" },
+            RemoteDirectories = new[] { "/sdcard/DCIM", "/sdcard/Pictures", "/sdcard/Camera", "/sdcard/Screenshots" },
             Extensions = new[] { "jpg", "jpeg", "png", "heic", "heif", "webp", "gif", "bmp", "dng", "raw", "tif", "tiff", "avif", "jfif" }
         },
         new()
@@ -24,7 +24,11 @@ public static class CategoryCatalog
             Description = "Videoaufnahmen aus DCIM, Movies und Pictures.",
             Icon = "🎬",
             Kind = BackupCategoryKind.Files,
-            RemoteDirectories = new[] { "/sdcard/DCIM", "/sdcard/Movies", "/sdcard/Pictures", "/sdcard/Video" },
+            RemoteDirectories = new[]
+            {
+                "/sdcard/DCIM", "/sdcard/Movies", "/sdcard/Pictures", "/sdcard/Video",
+                "/sdcard/Videos", "/sdcard/Camera"
+            },
             Extensions = new[] { "mp4", "mkv", "3gp", "mov", "webm", "avi", "m4v", "ts", "mts", "flv", "wmv" }
         },
         new()
@@ -37,7 +41,10 @@ public static class CategoryCatalog
             RemoteDirectories = new[]
             {
                 "/sdcard/Music", "/sdcard/Audio", "/sdcard/Recordings", "/sdcard/Podcasts",
-                "/sdcard/Audiobooks", "/sdcard/MIUI/sound_recorder"
+                "/sdcard/Audiobooks",
+                // herstellereigene Ordner: Samsung, Xiaomi/MIUI, Sony, LG
+                "/sdcard/Sounds", "/sdcard/MIUI/sound_recorder", "/sdcard/Voice Recorder",
+                "/sdcard/VoiceRecorder", "/sdcard/Record"
             },
             Extensions = new[] { "mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "amr", "wma", "mid" }
         },
@@ -48,7 +55,10 @@ public static class CategoryCatalog
             Description = "PDF-, Office- und Textdateien aus dem Dokumentenordner.",
             Icon = "📄",
             Kind = BackupCategoryKind.Files,
-            RemoteDirectories = new[] { "/sdcard/Documents", "/sdcard/Books", "/sdcard/eBooks" },
+            RemoteDirectories = new[]
+            {
+                "/sdcard/Documents", "/sdcard/Books", "/sdcard/eBooks", "/sdcard/Notes", "/sdcard/Scan"
+            },
             Extensions = Array.Empty<string>()
         },
         new()
@@ -72,6 +82,7 @@ public static class CategoryCatalog
             {
                 "/sdcard/WhatsApp",
                 "/sdcard/Android/media/com.whatsapp",
+                "/sdcard/Android/media/com.whatsapp.w4b",
                 "/sdcard/Android/media/org.telegram.messenger",
                 "/sdcard/Telegram",
                 "/sdcard/Android/media/org.thoughtcrime.securesms",

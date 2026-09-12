@@ -25,12 +25,12 @@ Statt „alles oder nichts“ lässt sich jede Gruppe einzeln an- und abwählen:
 
 | Gruppe | Inhalt |
 | --- | --- |
-| 🖼 Fotos | `DCIM`, `Pictures` – jpg, png, heic, webp, dng, … |
+| 🖼 Fotos | `DCIM`, `Pictures`, `Camera`, `Screenshots` – jpg, png, heic, webp, dng, … |
 | 🎬 Videos | `DCIM`, `Movies`, `Pictures` – mp4, mkv, mov, … |
-| 🎵 Musik & Aufnahmen | `Music`, `Recordings`, `Podcasts`, `Audiobooks` |
+| 🎵 Musik & Aufnahmen | `Music`, `Recordings`, `Podcasts`, `Audiobooks` sowie herstellereigene Aufnahmeordner (Samsung `Sounds`, Xiaomi `MIUI/sound_recorder`, Sony, LG) |
 | 📄 Dokumente | `Documents`, `Books` |
 | ⬇ Downloads | kompletter Download-Ordner |
-| 💬 Messenger-Medien | WhatsApp, Telegram, Signal, Threema (Mediendateien) |
+| 💬 Messenger-Medien | WhatsApp (auch Business), Telegram, Signal, Threema (Mediendateien) |
 | 🔔 Klingeltöne & Töne | `Ringtones`, `Notifications`, `Alarms` |
 | 📶 Bluetooth-Empfang | `Bluetooth`, `NearbyShare` |
 | 🗂 Sonstige Dateien | alles Übrige im internen Speicher (ohne `Android/`) |
@@ -40,6 +40,10 @@ Statt „alles oder nichts“ lässt sich jede Gruppe einzeln an- und abwählen:
 | ✉ SMS & MMS | Export über den Content-Provider (Rohdaten + CSV) |
 | 📞 Anrufliste | Export über den Content-Provider (Rohdaten + CSV) |
 | ⚙ Systemeinstellungen | `settings list system/secure/global` als Dokumentation |
+
+Die Ordnerlisten decken bewusst auch herstellereigene Pfade ab; alles, was dort nicht erfasst
+ist, fängt die Gruppe „Sonstige Dateien“ auf. So bleibt die Sicherung auf jedem Android-Gerät
+vollständig, ohne Sonderbehandlung je Marke.
 
 Überschneidungen werden automatisch aufgelöst: Ein Video im Ordner `DCIM` landet genau einmal in
 der Sicherung, auch wenn „Fotos“ und „Videos“ gleichzeitig gewählt sind.
