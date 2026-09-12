@@ -19,6 +19,38 @@ OnePlus, Motorola, Sony, Fairphone und andere.
 
 ---
 
+## Oberfläche
+
+> **Hinweis:** Die folgenden Bilder sind maßstabsgetreue Layout-Darstellungen der Oberfläche
+> (1180 × 780, direkt aus dem XAML nachgebaut) – keine Aufnahmen eines laufenden Programms.
+> Die Quelldateien dazu liegen unter `docs/screenshots/`.
+
+**Gerät** – Verbindungsstatus, Geräteinformationen inklusive Root-Erkennung, WLAN-Kopplung
+
+![Ansicht „Gerät“](docs/screenshots/01-geraet.png)
+
+**Sichern** – laufende Sicherung mit Fortschritt, Geschwindigkeit und Restzeit
+
+![Ansicht „Sichern“ während einer laufenden Sicherung](docs/screenshots/02-sichern-laeuft.png)
+
+**Gruppen** – auf Android 13+ werden nicht mögliche Gruppen gesperrt und begründet
+
+![Gruppenauswahl mit gesperrten Gruppen](docs/screenshots/03-gruppen.png)
+
+**Wiederherstellen** (dunkles Erscheinungsbild) – Satz, Gruppen, Konfliktstrategie und Importdateien
+
+![Ansicht „Wiederherstellen“](docs/screenshots/04-wiederherstellen-dunkel.png)
+
+**Sicherungen** – Übersicht, Inhalt und Laufhistorie eines Satzes
+
+![Ansicht „Sicherungen“](docs/screenshots/05-sicherungen.png)
+
+**Einstellungen** (dunkles Erscheinungsbild)
+
+![Ansicht „Einstellungen“](docs/screenshots/06-einstellungen-dunkel.png)
+
+---
+
 ## Funktionsumfang
 
 ### Vollsicherung
