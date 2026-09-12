@@ -1,0 +1,64 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PixelBackup.App.Views.MainWindow"
+        Title="Pixel Backup – Sicherung für Android-Geräte"
+        Width="1180"
+        Height="780"
+        MinWidth="940"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- Kopfzeile mit Gerätestatus -->
+    <Border Grid.Row="0" Padding="20,14" Background="{DynamicResource CardBackgroundBrush}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <TextBlock Grid.Column="0" Text="📱" FontSize="28" VerticalAlignment="Center" Margin="0,0,14,0" />
+
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock Text="{Binding DeviceHeadline}" FontSize="17" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding DeviceSubline}" Classes="hint" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock Text="{Binding BusyDescription}"
+                     IsVisible="{Binding IsBusy}"
+                     VerticalAlignment="Center"
+                     FontWeight="SemiBold" />
+          <ProgressBar IsIndeterminate="True" Width="110" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
+          <Button Content="Geräte suchen" Command="{Binding RefreshDevicesCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Navigation und Inhalt -->
+    <Grid Grid.Row="1" ColumnDefinitions="220,*">
+      <ListBox Grid.Column="0"
+               ItemsSource="{Binding Pages}"
+               SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
+               Background="Transparent"
+               Padding="8">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="2,6">
+              <TextBlock Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Title}" FontSize="14" VerticalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <ContentControl Grid.Column="1" Content="{Binding SelectedPage}" Margin="18,14,18,4" />
+    </Grid>
+
+    <!-- Statusleiste -->
+    <Border Grid.Row="2" Padding="20,8" Background="{DynamicResource CardBackgroundBrush}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding SelectedPage.StatusMessage}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="1" Text="{Binding AdbStatus}" Classes="hint" TextTrimming="CharacterEllipsis" MaxWidth="520" />
+      </Grid>
+    </Border>
+
+  </Grid>
+
+</Window>

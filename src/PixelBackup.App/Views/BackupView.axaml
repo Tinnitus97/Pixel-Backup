@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PixelBackup.App.Views.BackupView">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+    <StackPanel Grid.Row="0" Spacing="2">
+      <TextBlock Text="Sichern" Classes="h1" />
+      <TextBlock Classes="hint"
+                 Text="Gruppen auswählen, analysieren und die Sicherung starten. Fotos, Videos, Apps und mehr landen als lesbare Dateien auf dem PC." />
+      <TextBlock Text="{Binding TargetDescription}" Classes="hint" Margin="0,6,0,0" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Classes="card" Margin="0,14,0,12">
+      <StackPanel Spacing="10">
+        <WrapPanel>
+          <CheckBox Content="Nur Neues und Geändertes sichern" Margin="0,0,20,0"
+                    IsChecked="{Binding Incremental, Mode=TwoWay}"
+                    IsEnabled="{Binding IsIdle}"
+                    ToolTip.Tip="Aktualisiert den letzten Sicherungssatz dieses Gerätes, statt alles erneut zu übertragen." />
+          <CheckBox Content="Prüfsummen berechnen" Margin="0,0,20,0"
+                    IsChecked="{Binding ComputeHashes, Mode=TwoWay}"
+                    IsEnabled="{Binding IsIdle}"
+                    ToolTip.Tip="Ermöglicht später eine echte Überprüfung der Sicherung (SHA-256)." />
+          <CheckBox Content="Gelöschte Dateien entfernen" Margin="0,0,20,0"
+                    IsChecked="{Binding RemoveDeletedFiles, Mode=TwoWay}"
+                    IsEnabled="{Binding IsIdle}"
+                    ToolTip.Tip="Entfernt beim inkrementellen Lauf Kopien, die es auf dem Gerät nicht mehr gibt." />
+          <CheckBox Content="Am Ende ZIP-Archiv erstellen"
+                    IsChecked="{Binding CreateArchive, Mode=TwoWay}"
+                    IsEnabled="{Binding IsIdle}" />
+        </WrapPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding CreateArchive}">
+          <TextBlock Text="Kennwort für das Archiv (optional):" VerticalAlignment="Center" Classes="hint" />
+          <TextBox Width="220" PasswordChar="•" Text="{Binding ArchivePassword, Mode=TwoWay}" IsEnabled="{Binding IsIdle}" />
+          <TextBlock Text="AES-256, mindestens 6 Zeichen" VerticalAlignment="Center" Classes="hint" FontSize="12" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Content="Alle" Command="{Binding SelectAllCommand}" IsEnabled="{Binding IsIdle}" />
+          <Button Content="Keine" Command="{Binding SelectNoneCommand}" IsEnabled="{Binding IsIdle}" />
+          <Button Content="Empfohlene Auswahl" Command="{Binding SelectRecommendedCommand}" IsEnabled="{Binding IsIdle}" />
+          <TextBlock Text="{Binding PlanSummary}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="2">
+      <ItemsControl ItemsSource="{Binding Categories}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Margin="0,0,0,6"
+                    Padding="12,10"
+                    CornerRadius="6"
+                    Background="{DynamicResource CardBackgroundBrush}">
+              <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding Icon}" FontSize="19" Margin="2,0,12,0" VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="2" Spacing="2">
+                  <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Description}" Classes="hint" FontSize="12" />
+                  <TextBlock Text="{Binding Caveat}"
+                             IsVisible="{Binding HasCaveat}"
+                             Foreground="#C58A1E"
+                             FontSize="12"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="3"
+                           Text="{Binding SummaryText}"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"
+                           Classes="hint" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="3" Spacing="10" Margin="0,12,0,0">
+
+      <Border Classes="card" Margin="0" IsVisible="{Binding IsRunning}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding Progress.Phase}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Progress.CurrentItem}" Classes="hint" TextTrimming="CharacterEllipsis" />
+          <ProgressBar Height="8"
+                       Minimum="0"
+                       Maximum="100"
+                       Value="{Binding Progress.Percent}"
+                       IsIndeterminate="{Binding Progress.IsIndeterminate}" />
+          <Grid ColumnDefinitions="*,*,*,*">
+            <TextBlock Grid.Column="0" Text="{Binding Progress.CountText}" Classes="hint" />
+            <TextBlock Grid.Column="1" Text="{Binding Progress.BytesText}" Classes="hint" />
+            <TextBlock Grid.Column="2" Text="{Binding Progress.SpeedText}" Classes="hint" />
+            <TextBlock Grid.Column="3" Text="{Binding Progress.EtaText}" Classes="hint" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <TextBlock Text="{Binding ResultText}" IsVisible="{Binding HasResult}" FontWeight="SemiBold" TextWrapping="Wrap" />
+
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button Content="Analysieren" Command="{Binding AnalyzeCommand}" />
+        <Button Content="Sicherung starten"
+                Command="{Binding StartCommand}"
+                Classes="accent"
+                MinWidth="170" />
+        <Button Content="Abbrechen" Command="{Binding CancelCommand}" IsVisible="{Binding IsRunning}" />
+      </StackPanel>
+
+    </StackPanel>
+
+  </Grid>
+
+</UserControl>

@@ -1,0 +1,27 @@
+# Build-Artefakte
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+*.user
+*.suo
+*.userprefs
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+packages/
+
+# Laufzeit-Ausgaben der Anwendung
+*.log

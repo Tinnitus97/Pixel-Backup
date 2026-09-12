@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PixelBackup.App.Views.MessageDialog"
+        Width="480"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Title="Pixel Backup">
+
+  <Grid RowDefinitions="*,Auto" Margin="20">
+    <ScrollViewer MaxHeight="340">
+      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,20,0,0">
+      <Button Content="Abbrechen" IsVisible="{Binding IsConfirm}" Click="OnCancel" />
+      <Button Content="{Binding OkText}" IsDefault="True" Click="OnOk" />
+    </StackPanel>
+  </Grid>
+
+</Window>

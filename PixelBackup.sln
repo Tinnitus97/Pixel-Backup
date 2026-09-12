@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34309.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixelBackup.Core", "src\PixelBackup.Core\PixelBackup.Core.csproj", "{C847377D-385A-4668-A19A-3CAC5877FFAF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixelBackup.App", "src\PixelBackup.App\PixelBackup.App.csproj", "{09A1C040-4194-4C82-82CF-0F9CBAC599E7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixelBackup.Tests", "tests\PixelBackup.Tests\PixelBackup.Tests.csproj", "{5BCCFBF2-155C-46FD-B317-7ECB9F362693}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C847377D-385A-4668-A19A-3CAC5877FFAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C847377D-385A-4668-A19A-3CAC5877FFAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C847377D-385A-4668-A19A-3CAC5877FFAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C847377D-385A-4668-A19A-3CAC5877FFAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09A1C040-4194-4C82-82CF-0F9CBAC599E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09A1C040-4194-4C82-82CF-0F9CBAC599E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09A1C040-4194-4C82-82CF-0F9CBAC599E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09A1C040-4194-4C82-82CF-0F9CBAC599E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BCCFBF2-155C-46FD-B317-7ECB9F362693}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BCCFBF2-155C-46FD-B317-7ECB9F362693}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BCCFBF2-155C-46FD-B317-7ECB9F362693}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BCCFBF2-155C-46FD-B317-7ECB9F362693}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {462D9096-2D5A-4FC0-9DED-11388DF39484}
+	EndGlobalSection
+EndGlobal

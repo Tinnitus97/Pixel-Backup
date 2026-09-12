@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PixelBackup.App.Views.LogView">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <StackPanel Grid.Row="0" Spacing="2">
+      <TextBlock Text="Protokoll" Classes="h1" />
+      <TextBlock Text="{Binding LogPathText}" Classes="hint" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Classes="card" Margin="0,14,0,0">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Entries}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <SelectableTextBlock Text="{Binding}"
+                                   FontFamily="Consolas,Menlo,monospace"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Margin="0,1" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,12,0,0">
+      <Button Content="Protokoll speichern" Command="{Binding SaveCommand}" />
+      <Button Content="Protokollordner öffnen" Command="{Binding OpenFolderCommand}" />
+      <Button Content="Anzeige leeren" Command="{Binding ClearCommand}" />
+    </StackPanel>
+
+  </Grid>
+
+</UserControl>

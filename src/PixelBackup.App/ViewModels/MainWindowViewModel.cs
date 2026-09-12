@@ -1,0 +1,137 @@
+using System.Collections.ObjectModel;
+using PixelBackup.App.Mvvm;
+using PixelBackup.App.Services;
+using PixelBackup.Core.Adb;
+using PixelBackup.Core.Diagnostics;
+
+namespace PixelBackup.App.ViewModels;
+
+/// <summary>Rahmen der Anwendung: Navigation, Kopfzeile und Startlogik.</summary>
+public sealed class MainWindowViewModel : ObservableObject
+{
+    private readonly AppSession _session;
+    private ViewModelBase _selectedPage;
+
+    public MainWindowViewModel(AppSession session)
+    {
+        _session = session;
+
+        Devices = new DevicesViewModel(session);
+        Backup = new BackupViewModel(session);
+        Restore = new RestoreViewModel(session);
+        Library = new LibraryViewModel(session);
+        Log = new LogViewModel(session);
+        Settings = new SettingsViewModel(session);
+
+        Pages = new ObservableCollection<ViewModelBase> { Devices, Backup, Restore, Library, Log, Settings };
+        _selectedPage = Devices;
+
+        RefreshDevicesCommand = new AsyncRelayCommand(
+            () => _session.RefreshDevicesAsync(),
+            () => _session.AdbAvailable);
+
+        _session.PropertyChanged += (_, e) =>
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(AppSession.SelectedDevice):
+                case nameof(AppSession.DeviceInfo):
+                    OnPropertiesChanged(nameof(DeviceHeadline), nameof(DeviceSubline), nameof(HasDevice));
+                    break;
+                case nameof(AppSession.AdbAvailable):
+                case nameof(AppSession.AdbStatus):
+                    OnPropertiesChanged(nameof(AdbStatus), nameof(AdbAvailable));
+                    RefreshDevicesCommand.RaiseCanExecuteChanged();
+                    break;
+                case nameof(AppSession.IsBusy):
+                case nameof(AppSession.BusyDescription):
+                    OnPropertiesChanged(nameof(IsBusy), nameof(BusyDescription));
+                    break;
+            }
+        };
+
+        _session.DeviceConnected += OnDeviceConnected;
+    }
+
+    public AppSession Session => _session;
+
+    public ObservableCollection<ViewModelBase> Pages { get; }
+
+    public DevicesViewModel Devices { get; }
+
+    public BackupViewModel Backup { get; }
+
+    public RestoreViewModel Restore { get; }
+
+    public LibraryViewModel Library { get; }
+
+    public LogViewModel Log { get; }
+
+    public SettingsViewModel Settings { get; }
+
+    public AsyncRelayCommand RefreshDevicesCommand { get; }
+
+    public ViewModelBase SelectedPage
+    {
+        get => _selectedPage;
+        set
+        {
+            if (SetProperty(ref _selectedPage, value) && value is not null)
+            {
+                _ = value.ActivateAsync();
+            }
+        }
+    }
+
+    public string Header => "Pixel Backup";
+
+    public string SubHeader => "Vollsicherung und Wiederherstellung für Android-Geräte – direkt über adb";
+
+    public bool AdbAvailable => _session.AdbAvailable;
+
+    public string AdbStatus => _session.AdbStatus;
+
+    public bool HasDevice => _session.HasDevice;
+
+    public bool IsBusy => _session.IsBusy;
+
+    public string BusyDescription => _session.BusyDescription;
+
+    public string DeviceHeadline => _session.SelectedDevice is null
+        ? "Kein Gerät verbunden"
+        : _session.DeviceInfo?.DisplayName ?? _session.SelectedDevice.DisplayName;
+
+    public string DeviceSubline
+    {
+        get
+        {
+            if (_session.SelectedDevice is null)
+            {
+                return "Bitte ein Android-Gerät per USB anschließen und USB-Debugging bestätigen.";
+            }
+
+            var info = _session.DeviceInfo;
+            return info is null
+                ? _session.SelectedDevice.StateText
+                : $"{info.AndroidText} · Akku {info.BatteryLevel}% · {info.StorageText}";
+        }
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _session.InitializeAsync().ConfigureAwait(true);
+        await SelectedPage.ActivateAsync().ConfigureAwait(true);
+    }
+
+    private void OnDeviceConnected(AdbDevice device)
+    {
+        if (!_session.Settings.AutoBackupOnConnect || _session.IsBusy)
+        {
+            return;
+        }
+
+        _session.Log.Info($"Automatische Sicherung für {device.DisplayName} wird vorbereitet.");
+        SelectedPage = Backup;
+        _ = Backup.RunAutomaticBackupAsync();
+    }
+}

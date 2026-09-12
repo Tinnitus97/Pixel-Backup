@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PixelBackup.App.Views.SettingsView">
+
+  <ScrollViewer>
+    <StackPanel Spacing="4">
+
+      <TextBlock Text="Einstellungen" Classes="h1" />
+      <TextBlock Text="Alle Angaben werden sofort übernommen und beim Beenden gespeichert." Classes="hint" />
+
+      <Border Classes="card" Margin="0,14,0,12">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Speicherorte" Classes="h2" Margin="0,0,0,4" />
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="Ordner für die Sicherungen" Classes="hint" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Width="520" Text="{Binding BackupRoot, Mode=TwoWay}" />
+              <Button Content="Auswählen …" Command="{Binding BrowseBackupRootCommand}" />
+              <Button Content="Öffnen" Command="{Binding OpenBackupFolderCommand}" />
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="Pfad zu adb (leer lassen für die automatische Suche)" Classes="hint" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Width="520" Watermark="C:\platform-tools\adb.exe" Text="{Binding AdbPath, Mode=TwoWay}" />
+              <Button Content="Auswählen …" Command="{Binding BrowseAdbCommand}" />
+              <Button Content="Suchen und verbinden" Command="{Binding DetectAdbCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding AdbStatusText}" Classes="hint" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Sicherung" Classes="h2" Margin="0,0,0,4" />
+
+          <CheckBox Content="Standardmäßig nur Neues und Geändertes sichern"
+                    IsChecked="{Binding IncrementalByDefault, Mode=TwoWay}" />
+          <CheckBox Content="Prüfsummen (SHA-256) berechnen"
+                    IsChecked="{Binding ComputeHashes, Mode=TwoWay}" />
+          <CheckBox Content="Auf dem Gerät gelöschte Dateien auch aus der Sicherung entfernen"
+                    IsChecked="{Binding RemoveDeletedFiles, Mode=TwoWay}" />
+          <CheckBox Content="Nach jeder Sicherung ein ZIP-Archiv erstellen"
+                    IsChecked="{Binding CreateArchive, Mode=TwoWay}" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Aufbewahrung je Gerät (0 = alle behalten):" VerticalAlignment="Center" />
+            <NumericUpDown Width="120"
+                           Minimum="0"
+                           Maximum="99"
+                           Increment="1"
+                           FormatString="0"
+                           Value="{Binding KeepSetsPerDevice, Mode=TwoWay}" />
+            <TextBlock Text="Sicherungssätze" VerticalAlignment="Center" Classes="hint" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Automatik" Classes="h2" Margin="0,0,0,4" />
+
+          <CheckBox Content="Angeschlossene Geräte laufend überwachen"
+                    IsChecked="{Binding WatchDevices, Mode=TwoWay}" />
+          <CheckBox Content="Sicherung automatisch starten, sobald ein bekanntes Gerät angeschlossen wird"
+                    IsChecked="{Binding AutoBackupOnConnect, Mode=TwoWay}" />
+          <TextBlock Classes="hint" FontSize="12"
+                     Text="Die automatische Sicherung verwendet die zuletzt gewählten Gruppen und läuft ohne Rückfrage." />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Darstellung" Classes="h2" Margin="0,0,0,4" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Erscheinungsbild:" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding ThemeOptions}"
+                      SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
+                      MinWidth="200">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Content="Einstellungen speichern" Command="{Binding SaveCommand}" Classes="accent" />
+            <Button Content="Einstellungsordner öffnen" Command="{Binding OpenSettingsFolderCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

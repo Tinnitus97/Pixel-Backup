@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PixelBackup.App.Views.DevicesView">
+
+  <ScrollViewer>
+    <StackPanel Spacing="4">
+
+      <TextBlock Text="Gerät" Classes="h1" />
+      <TextBlock Classes="hint"
+                 Text="Pixel Backup spricht jedes Android-Gerät direkt über adb an – unabhängig vom Hersteller." />
+
+      <Border Classes="card" Margin="0,14,0,12">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Verbundene Geräte" Classes="h2" Margin="0,0,0,4" />
+
+          <ListBox ItemsSource="{Binding Session.Devices}"
+                   SelectedItem="{Binding Session.SelectedDevice, Mode=TwoWay}"
+                   MaxHeight="190">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Serial}" Classes="hint" FontSize="12" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text="{Binding StateText}" VerticalAlignment="Center" Classes="hint" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Aktualisieren" Command="{Binding RefreshCommand}" />
+            <Button Content="adb-Server neu starten" Command="{Binding RestartAdbCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding Session.HasDevice}">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Geräteinformationen" Classes="h2" Margin="0,0,0,4" />
+
+          <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Modell" Classes="hint" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Session.DeviceInfo.DisplayName}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Android" Classes="hint" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Session.DeviceInfo.AndroidText}" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Build" Classes="hint" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Session.DeviceInfo.BuildId}" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Sicherheitspatch" Classes="hint" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Session.DeviceInfo.SecurityPatch}" />
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Speicher" Classes="hint" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Session.DeviceInfo.StorageText}" />
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Seriennummer" Classes="hint" />
+            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Session.DeviceInfo.Serial}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Drahtlos verbinden" Classes="h2" Margin="0,0,0,4" />
+          <TextBlock Classes="hint"
+                     Text="Gerät einmal per USB anschließen, den WLAN-Modus aktivieren und das Kabel danach abziehen." />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Width="240"
+                     Watermark="192.168.1.50:5555"
+                     Text="{Binding WirelessAddress, Mode=TwoWay}" />
+            <Button Content="Verbinden" Command="{Binding ConnectWirelessCommand}" />
+            <Button Content="WLAN-Modus aktivieren" Command="{Binding EnableWirelessCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Erste Schritte" Classes="h2" Margin="0,0,0,4" />
+          <TextBlock Text="{Binding SetupHint}" Classes="hint" />
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>
