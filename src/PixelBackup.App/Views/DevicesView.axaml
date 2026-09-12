@@ -40,7 +40,7 @@
         <StackPanel Spacing="6">
           <TextBlock Text="Geräteinformationen" Classes="h2" Margin="0,0,0,4" />
 
-          <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+          <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
             <TextBlock Grid.Row="0" Grid.Column="0" Text="Modell" Classes="hint" />
             <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Session.DeviceInfo.DisplayName}" />
 
@@ -58,6 +58,11 @@
 
             <TextBlock Grid.Row="5" Grid.Column="0" Text="Seriennummer" Classes="hint" />
             <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Session.DeviceInfo.Serial}" />
+
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Root-Zugriff" Classes="hint" />
+            <TextBlock Grid.Row="6" Grid.Column="1"
+                       Text="{Binding Session.DeviceInfo.RootText}"
+                       TextWrapping="Wrap" />
           </Grid>
         </StackPanel>
       </Border>

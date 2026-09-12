@@ -12,6 +12,7 @@ public static class PathMapper
     public const string AppsFolder = "apps";
     public const string DataFolder = "data";
     public const string AppDataFolder = "appdata";
+    public const string RootAppDataFolder = "appdata-root";
 
     private static readonly char[] InvalidNameChars = { '<', '>', ':', '"', '|', '?', '*', '\\' };
 

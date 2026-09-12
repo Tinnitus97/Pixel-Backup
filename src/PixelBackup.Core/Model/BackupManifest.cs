@@ -9,7 +9,13 @@ public enum BackupEntryType
     Apk,
     LegacyAppData,
     ContentExport,
-    SettingsExport
+    SettingsExport,
+
+    /// <summary>Vollständige App-Daten als tar-Archiv (nur mit Root gesichert).</summary>
+    RootAppData,
+
+    /// <summary>Aus einem Datenexport erzeugte Importdatei (vCard, ICS, XML).</summary>
+    ImportFile
 }
 
 public enum BackupMode

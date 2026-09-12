@@ -58,11 +58,13 @@ public sealed class BackupViewModel : ViewModelBase
             if (e.PropertyName is nameof(AppSession.SelectedDevice) or nameof(AppSession.DeviceInfo))
             {
                 ResetPlan();
+                UpdateAvailability();
                 UpdateTargetDescription();
                 RaiseCommandStates();
             }
         };
 
+        UpdateAvailability();
         UpdateTargetDescription();
     }
 
@@ -187,6 +189,7 @@ public sealed class BackupViewModel : ViewModelBase
 
     public override Task ActivateAsync()
     {
+        UpdateAvailability();
         UpdateTargetDescription();
         RaiseCommandStates();
         return Task.CompletedTask;
@@ -401,7 +404,47 @@ public sealed class BackupViewModel : ViewModelBase
     {
         foreach (var item in Categories)
         {
-            item.IsSelected = predicate(item);
+            item.IsSelected = item.IsAvailable && predicate(item);
+        }
+    }
+
+    /// <summary>
+    /// Sperrt Gruppen, die auf dem angeschlossenen Gerät nicht möglich sind – aktuell die
+    /// vollständige App-Daten-Sicherung, die Root-Rechte voraussetzt.
+    /// </summary>
+    private void UpdateAvailability()
+    {
+        var device = _session.DeviceInfo;
+        var hasRoot = device?.HasRoot ?? false;
+        var sdk = device?.SdkNumber ?? 0;
+
+        foreach (var item in Categories)
+        {
+            if (item.Category.RequiresRoot)
+            {
+                item.SetAvailability(
+                    hasRoot,
+                    hasRoot
+                        ? string.Empty
+                        : "Nicht verfügbar: Das Gerät bietet keinen Root-Zugriff. Ohne Root lässt Android seit " +
+                          "Version 12 keine Sicherung fremder App-Daten zu.");
+                continue;
+            }
+
+            // Der alte adb-backup-Weg ist ab Android 13 faktisch abgeschaltet.
+            if (item.Id == "appdata" && sdk >= 33)
+            {
+                item.SetAvailability(
+                    false,
+                    $"Nicht verfügbar: Ab Android 13 (dieses Gerät: API {sdk}) liefert „adb backup“ keine Daten mehr. " +
+                    "Nutze stattdessen „Apps (APK)“ und beim Einrichten des neuen Telefons die Android-Übertragung.");
+                continue;
+            }
+
+            if (!item.IsAvailable)
+            {
+                item.SetAvailability(true, string.Empty);
+            }
         }
     }
 

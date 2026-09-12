@@ -1,5 +1,18 @@
 namespace PixelBackup.Core.Adb;
 
+/// <summary>Art des Root-Zugriffs, den adb auf dem Gerät hat.</summary>
+public enum RootMode
+{
+    /// <summary>Kein Root – der Normalfall bei Seriengeräten.</summary>
+    None,
+
+    /// <summary>adbd läuft bereits als root (Entwickler-/userdebug-Abbild).</summary>
+    AdbRoot,
+
+    /// <summary>Root über den Befehl <c>su</c> (Magisk o. Ä.).</summary>
+    Su
+}
+
 public enum AdbDeviceState
 {
     Unknown,

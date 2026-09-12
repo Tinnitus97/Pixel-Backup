@@ -1,3 +1,4 @@
+using PixelBackup.Core.Adb;
 using PixelBackup.Core.Util;
 
 namespace PixelBackup.Core.Model;
@@ -33,6 +34,18 @@ public sealed class DeviceInfo
 
     public bool IsCharging { get; set; }
 
+    /// <summary>Root-Zugriff über adb (ermöglicht die vollständige App-Daten-Sicherung).</summary>
+    public RootMode RootAccess { get; set; } = RootMode.None;
+
+    public bool HasRoot => RootAccess != RootMode.None;
+
+    public string RootText => RootAccess switch
+    {
+        RootMode.AdbRoot => "ja (adbd läuft als root)",
+        RootMode.Su => "ja (su verfügbar)",
+        _ => "nein – App-Daten sind systembedingt nicht vollständig sicherbar"
+    };
+
     public string DisplayName
     {
         get
@@ -41,6 +54,9 @@ public sealed class DeviceInfo
             return name.Length == 0 ? Serial : name;
         }
     }
+
+    /// <summary>API-Ebene als Zahl (0, wenn unbekannt).</summary>
+    public int SdkNumber => int.TryParse(SdkLevel, out var value) ? value : 0;
 
     public string AndroidText =>
         string.IsNullOrWhiteSpace(SdkLevel) ? AndroidVersion : $"Android {AndroidVersion} (API {SdkLevel})";

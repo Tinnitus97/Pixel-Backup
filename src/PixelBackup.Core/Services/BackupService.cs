@@ -56,6 +56,10 @@ public sealed class BackupService
                     await PlanAppsAsync(serial, plan, category, status, ct).ConfigureAwait(false);
                     break;
 
+                case BackupCategoryKind.RootAppData:
+                    await PlanRootAppDataAsync(serial, plan, category, status, ct).ConfigureAwait(false);
+                    break;
+
                 case BackupCategoryKind.AppData:
                     plan.Items.Add(new PlannedItem
                     {
@@ -216,6 +220,50 @@ public sealed class BackupService
         }
     }
 
+    private async Task PlanRootAppDataAsync(
+        string serial,
+        BackupPlan plan,
+        BackupCategory category,
+        IProgress<string>? status,
+        CancellationToken ct)
+    {
+        var mode = await _adb.DetectRootAsync(serial, ct).ConfigureAwait(false);
+        plan.RootAccess = mode;
+
+        if (mode == RootMode.None)
+        {
+            var warning = "Ohne Root-Zugriff lassen sich die vollständigen App-Daten nicht sichern – " +
+                          "diese Gruppe wird übersprungen. Gesichert werden stattdessen die Apps selbst (APK).";
+            plan.Warnings.Add(warning);
+            _log.Warn(warning);
+            return;
+        }
+
+        status?.Report("Root erkannt – ermittle Größe der App-Daten …");
+        var packages = await _adb.ListPackagesAsync(serial, includeSystemApps: false, ct).ConfigureAwait(false);
+        var sizes = await _adb
+            .GetAppDataSizesAsync(serial, packages.Select(p => p.PackageName), mode, ct)
+            .ConfigureAwait(false);
+
+        foreach (var package in packages)
+        {
+            ct.ThrowIfCancellationRequested();
+            var remotePath = "/data/data/" + package.PackageName;
+            plan.SeenRemotePaths.Add(remotePath);
+            plan.Items.Add(new PlannedItem
+            {
+                CategoryId = category.Id,
+                Type = BackupEntryType.RootAppData,
+                RemotePath = remotePath,
+                RelativePath = $"{PathMapper.RootAppDataFolder}/{PathMapper.SanitizeSegment(package.PackageName)}.tar",
+                Size = sizes.TryGetValue(package.PackageName, out var size) ? size : -1,
+                PackageName = package.PackageName,
+                VersionCode = package.VersionCode,
+                DisplayName = package.PackageName
+            });
+        }
+    }
+
     private static void MarkUnchangedItems(BackupPlan plan, BackupSet previousSet)
     {
         var existing = new Dictionary<string, BackupEntry>(StringComparer.Ordinal);
@@ -351,7 +399,8 @@ public sealed class BackupService
                 {
                     if (batch.Count == 1)
                     {
-                        Register(await CaptureAsync(serial, setDirectory, first, options, ct).ConfigureAwait(false));
+                        Register(await CaptureAsync(serial, setDirectory, first, options, plan.RootAccess, ct)
+                            .ConfigureAwait(false));
                     }
                     else
                     {
@@ -390,6 +439,26 @@ public sealed class BackupService
             RemoveVanishedEntries(setDirectory, plan, entries, result);
         }
 
+        if (!result.Canceled)
+        {
+            try
+            {
+                var importFiles = await ImportFileBuilder
+                    .BuildAsync(setDirectory, entries.Values.ToList(), _log, ct)
+                    .ConfigureAwait(false);
+
+                foreach (var importFile in importFiles)
+                {
+                    entries[EntryKey(importFile.Type, importFile.RemotePath)] = importFile;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Warnings.Add("Importdateien konnten nicht erzeugt werden: " + ex.Message);
+                _log.Warn("Importdateien konnten nicht erzeugt werden: " + ex.Message);
+            }
+        }
+
         manifest.Entries = entries.Values.OrderBy(e => e.RelativePath, StringComparer.OrdinalIgnoreCase).ToList();
         manifest.UpdatedUtc = DateTimeOffset.UtcNow;
         manifest.Runs.Add(new BackupRun
@@ -408,6 +477,7 @@ public sealed class BackupService
         result.Duration = stopwatch.Elapsed;
         manifest.Save(setDirectory);
         WriteReport(setDirectory, manifest, result);
+        WriteMigrationGuide(setDirectory, manifest);
 
         if (options.CreateArchive && !result.Canceled)
         {
@@ -567,6 +637,7 @@ public sealed class BackupService
         string setDirectory,
         PlannedItem item,
         BackupOptions options,
+        RootMode rootMode,
         CancellationToken ct)
     {
         var localPath = PathMapper.ToLocalPath(setDirectory, item.RelativePath);
@@ -599,6 +670,41 @@ public sealed class BackupService
                     ModifiedUnix = item.ModifiedUnix > 0
                         ? item.ModifiedUnix
                         : new DateTimeOffset(info.LastWriteTimeUtc).ToUnixTimeSeconds(),
+                    PackageName = item.PackageName,
+                    VersionCode = item.VersionCode,
+                    Sha256 = options.ComputeHashes ? await Hashing.Sha256FileAsync(localPath, ct).ConfigureAwait(false) : null
+                };
+            }
+
+            case BackupEntryType.RootAppData:
+            {
+                if (rootMode == RootMode.None || item.PackageName is null)
+                {
+                    return null;
+                }
+
+                var command = AdbClient.WrapRoot(
+                    $"tar -c -C /data/data {AdbClient.Quote(item.PackageName)} 2>/dev/null",
+                    rootMode);
+
+                var export = await _adb.ExecOutToFileAsync(serial, command, localPath, ct).ConfigureAwait(false);
+
+                if (!File.Exists(localPath) || new FileInfo(localPath).Length < 1024)
+                {
+                    _log.Warn($"Keine App-Daten für {item.PackageName}: {export.ErrorSummary}");
+                    TryDelete(localPath);
+                    return null;
+                }
+
+                var archive = new FileInfo(localPath);
+                item.Size = archive.Length;
+                return new BackupEntry
+                {
+                    CategoryId = item.CategoryId,
+                    Type = item.Type,
+                    RemotePath = item.RemotePath,
+                    RelativePath = item.RelativePath,
+                    Size = archive.Length,
                     PackageName = item.PackageName,
                     VersionCode = item.VersionCode,
                     Sha256 = options.ComputeHashes ? await Hashing.Sha256FileAsync(localPath, ct).ConfigureAwait(false) : null
@@ -743,6 +849,20 @@ public sealed class BackupService
         }
     }
 
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+    }
+
     private static double Speed(long bytesDone, TimeSpan elapsed) =>
         elapsed.TotalSeconds <= 0.5 ? 0 : bytesDone / elapsed.TotalSeconds;
 
@@ -757,6 +877,73 @@ public sealed class BackupService
         }
 
         return directory;
+    }
+
+    /// <summary>
+    /// Schreibt eine Schritt-für-Schritt-Anleitung für den Umzug auf ein neues Telefon
+    /// direkt in den Sicherungssatz.
+    /// </summary>
+    private static void WriteMigrationGuide(string setDirectory, BackupManifest manifest)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("Umzug auf ein neues Telefon");
+        builder.AppendLine(new string('=', 40));
+        builder.AppendLine();
+        builder.AppendLine($"Quelle: {manifest.Device.DisplayName} ({manifest.Device.AndroidText})");
+        builder.AppendLine($"Satz:   {Path.GetFileName(setDirectory.TrimEnd(Path.DirectorySeparatorChar))}");
+        builder.AppendLine();
+        builder.AppendLine("1. Neues Telefon einrichten, mit demselben Google-Konto anmelden.");
+        builder.AppendLine("2. Entwickleroptionen und USB-Debugging am neuen Telefon aktivieren.");
+        builder.AppendLine("3. In Pixel Backup auf 'Wiederherstellen' wechseln, diesen Satz wählen");
+        builder.AppendLine("   und die gewünschten Gruppen zurückspielen.");
+        builder.AppendLine();
+
+        var hasImportFiles = manifest.Entries.Any(e => e.Type == BackupEntryType.ImportFile);
+        if (hasImportFiles)
+        {
+            builder.AppendLine("Importdateien in diesem Satz (Ordner 'data'):");
+            foreach (var entry in manifest.Entries.Where(e => e.Type == BackupEntryType.ImportFile))
+            {
+                builder.AppendLine("   - " + Path.GetFileName(entry.RelativePath));
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("   Beim Wiederherstellen legt Pixel Backup diese Dateien unter");
+            builder.AppendLine("   /sdcard/PixelBackup-Import auf dem neuen Telefon ab. Danach:");
+            builder.AppendLine("   - kontakte.vcf  ▸ Kontakte-App ▸ Einstellungen ▸ Importieren ▸ .vcf-Datei");
+            builder.AppendLine("   - kalender.ics  ▸ Kalender-App bzw. calendar.google.com ▸ Importieren");
+            builder.AppendLine("   - sms.xml / anrufliste.xml ▸ App 'SMS Backup & Restore' ▸ Wiederherstellen");
+            builder.AppendLine();
+        }
+
+        if (manifest.Entries.Any(e => e.Type == BackupEntryType.RootAppData))
+        {
+            builder.AppendLine("App-Daten (Root): Die tar-Archive im Ordner 'appdata-root' lassen sich nur auf");
+            builder.AppendLine("ein ebenfalls gerootetes Gerät zurückspielen. Reihenfolge: erst die App");
+            builder.AppendLine("installieren, dann die Daten zurückspielen.");
+            builder.AppendLine();
+        }
+        else
+        {
+            builder.AppendLine("Hinweis zu App-Daten: Ohne Root kann kein PC-Werkzeug die Daten installierter");
+            builder.AppendLine("Apps auslesen – das verhindert Android seit Version 12 grundsätzlich.");
+            builder.AppendLine("Für Spielstände, Chatverläufe und Einstellungen deshalb zusätzlich nutzen:");
+            builder.AppendLine("   - die Android-Übertragung beim Ersteinrichten des neuen Telefons");
+            builder.AppendLine("     (Kabel oder WLAN) – sie überträgt Apps samt Daten;");
+            builder.AppendLine("   - die Sicherung der jeweiligen App (z. B. WhatsApp ▸ Google Drive).");
+            builder.AppendLine();
+        }
+
+        builder.AppendLine("Die Dateien dieses Satzes liegen unverändert im Ordner 'files' und lassen sich");
+        builder.AppendLine("auch ohne Pixel Backup weiterverwenden.");
+
+        try
+        {
+            File.WriteAllText(Path.Combine(setDirectory, "umzug-anleitung.txt"), builder.ToString(), Encoding.UTF8);
+        }
+        catch (IOException)
+        {
+        }
     }
 
     private static void WriteReport(string setDirectory, BackupManifest manifest, BackupResult result)

@@ -17,7 +17,28 @@ public enum BackupCategoryKind
     ContentProvider,
 
     /// <summary>Systemeinstellungen (<c>settings list</c>).</summary>
-    Settings
+    Settings,
+
+    /// <summary>Vollständige App-Daten aus <c>/data/data</c> – nur mit Root-Zugriff.</summary>
+    RootAppData
+}
+
+/// <summary>Zusätzliche Importdatei, die aus einem Datenexport erzeugt wird.</summary>
+public enum ImportFormat
+{
+    None,
+
+    /// <summary>vCard (.vcf) – lässt sich auf jedem Android-Gerät importieren.</summary>
+    VCard,
+
+    /// <summary>XML im Format von "SMS Backup &amp; Restore".</summary>
+    SmsXml,
+
+    /// <summary>XML der Anrufliste im Format von "SMS Backup &amp; Restore".</summary>
+    CallsXml,
+
+    /// <summary>Kalenderdatei (.ics).</summary>
+    Ics
 }
 
 /// <summary>Eine wählbare Sicherungsgruppe wie "Fotos", "Videos" oder "Apps".</summary>
@@ -49,6 +70,12 @@ public sealed class BackupCategory
 
     /// <summary>Content-URIs bzw. Namensräume, die exportiert werden.</summary>
     public IReadOnlyList<string> Sources { get; init; } = Array.Empty<string>();
+
+    /// <summary>Format der zusätzlich erzeugten Importdatei für das neue Telefon.</summary>
+    public ImportFormat Import { get; init; } = ImportFormat.None;
+
+    /// <summary>Kategorie steht nur mit Root-Zugriff zur Verfügung.</summary>
+    public bool RequiresRoot { get; init; }
 
     /// <summary>Prüft, ob eine Gerätedatei zu dieser Kategorie gehört.</summary>
     public bool Matches(string remotePath)

@@ -11,6 +11,12 @@ OnePlus, Motorola, Sony, Fairphone und andere.
 > Die Sicherungen sind **keine undurchsichtigen Container**: Fotos bleiben Fotos, Dokumente bleiben
 > Dokumente. Jeder Sicherungssatz lässt sich im Explorer öffnen und einzeln weiterverwenden.
 
+> **Kurz zu Android 13+ (auch 16/17):** Dateien, Apps, Kontakte, SMS, Anrufliste und Kalender lassen
+> sich vollständig sichern und auf ein neues Telefon bringen. Die **Daten installierter Apps** kann
+> ohne Root kein PC-Werkzeug mehr auslesen – das verbietet Android seit Version 12.
+> Details und den empfohlenen Umzugsweg beschreibt der Abschnitt
+> [„Was auf Android 13–17 wirklich geht“](#was-auf-android-13-14-15-16-und-17-wirklich-geht).
+
 ---
 
 ## Funktionsumfang
@@ -34,11 +40,14 @@ Statt „alles oder nichts“ lässt sich jede Gruppe einzeln an- und abwählen:
 | 🔔 Klingeltöne & Töne | `Ringtones`, `Notifications`, `Alarms` |
 | 📶 Bluetooth-Empfang | `Bluetooth`, `NearbyShare` |
 | 🗂 Sonstige Dateien | alles Übrige im internen Speicher (ohne `Android/`) |
+| 🎮 App-Ordner im Speicher | `Android/data`, `Android/obb` – Spielstände, soweit das Gerät den Zugriff erlaubt |
 | 📦 Apps (APK) | alle selbst installierten Apps inkl. Split-APKs |
-| 🗄 App-Daten | klassische `adb backup`-Sicherung (siehe Grenzen) |
+| 🔐 App-Daten vollständig | `/data/data` je App als tar-Archiv – **nur mit Root** |
+| 🗄 App-Daten (klassisch) | `adb backup` – nur für Geräte bis Android 11 sinnvoll |
 | 👤 Kontakte | Export über den Content-Provider (Rohdaten + CSV) |
 | ✉ SMS & MMS | Export über den Content-Provider (Rohdaten + CSV) |
 | 📞 Anrufliste | Export über den Content-Provider (Rohdaten + CSV) |
+| 📅 Kalender | Termine aus dem Gerätekalender (Rohdaten + CSV) |
 | ⚙ Systemeinstellungen | `settings list system/secure/global` als Dokumentation |
 
 Die Ordnerlisten decken bewusst auch herstellereigene Pfade ab; alles, was dort nicht erfasst
@@ -53,6 +62,22 @@ der Sicherung, auch wenn „Fotos“ und „Videos“ gleichzeitig gewählt sind
 * Konfliktstrategie je Lauf: vorhandene Dateien behalten, überschreiben oder beide behalten.
 * Apps werden per `adb install` bzw. `install-multiple` (Split-APKs) installiert.
 * Nach dem Kopieren wird der Medienscanner angestoßen, damit Fotos sofort in der Galerie erscheinen.
+
+### Umzug auf ein neues Telefon
+
+Aus den Datenexporten erzeugt Pixel Backup automatisch Dateien, die sich auf **jedem** neuen
+Android-Telefon einspielen lassen:
+
+| Datei | Inhalt | Import auf dem neuen Telefon |
+| --- | --- | --- |
+| `data/kontakte.vcf` | Namen, Rufnummern, E-Mail-Adressen | Kontakte-App ▸ Importieren |
+| `data/kalender.ics` | Termine | Kalender-App bzw. calendar.google.com ▸ Importieren |
+| `data/sms.xml` | SMS/MMS | App „SMS Backup & Restore“ ▸ Wiederherstellen |
+| `data/anrufliste.xml` | Anrufliste | App „SMS Backup & Restore“ ▸ Wiederherstellen |
+
+Beim Wiederherstellen legt Pixel Backup diese Dateien unter `/sdcard/PixelBackup-Import` auf dem
+Zielgerät ab. Jeder Sicherungssatz enthält zusätzlich `umzug-anleitung.txt` mit den Schritten für
+genau diesen Satz.
 
 ### Weitere Funktionen
 * **Analyse vorab** – zeigt je Gruppe Anzahl und Größe an, bevor etwas übertragen wird.
@@ -131,7 +156,11 @@ dotnet test
         ├── files/sdcard/DCIM/…        1:1-Abbild des internen Speichers
         ├── apps/<paketname>/*.apk     Installationsdateien
         ├── appdata/app-daten.ab       klassische App-Daten-Sicherung (falls gewählt)
-        └── data/kontakte-….txt|.csv   Datenexporte
+        ├── appdata-root/<paket>.tar   vollständige App-Daten (nur mit Root)
+        ├── data/kontakte-….txt|.csv   Rohdaten der Exporte
+        ├── data/kontakte.vcf          Importdateien für das neue Telefon
+        ├── data/sms.xml · kalender.ics
+        └── umzug-anleitung.txt        Schritte für den Wechsel auf ein neues Telefon
 ```
 
 Ein inkrementeller Lauf aktualisiert den jüngsten Satz des Gerätes und hängt einen weiteren Eintrag
@@ -139,23 +168,51 @@ an die Laufhistorie im Manifest an.
 
 ---
 
-## Grenzen (ehrlich gesagt)
+## Was auf Android 13, 14, 15, 16 und 17 wirklich geht
 
-* **App-Daten**: Android hat `adb backup` ab Version 12 praktisch stillgelegt – die meisten Apps
-  liefern keine Daten mehr. Ohne Root ist das systembedingt nicht zu umgehen; gesichert werden
-  deshalb zuverlässig die APKs, nicht die Spielstände. Für Chatverläufe bleiben die
-  app-eigenen Sicherungen (z. B. WhatsApp → Google Drive) der richtige Weg.
-* **Kontakte, SMS, Anrufliste**: Der Zugriff über `content query` hängt von Hersteller und
-  Android-Version ab. Klappt er nicht, meldet das Protokoll dies deutlich und die übrigen Gruppen
-  laufen normal weiter. Die Exporte sind Rohdaten (plus CSV), kein 1:1-Rückweg.
-* **`/sdcard/Android/data` und `obb`** werden bewusst ausgelassen: Ohne Root ist der Zugriff
-  ab Android 11 gesperrt.
+Android hat den Zugriff von außen über die Jahre stark eingeschränkt. Diese Tabelle sagt, was ein
+PC-Werkzeug per adb heute noch leisten kann – und was nicht:
+
+| Inhalt | Ohne Root | Mit Root |
+| --- | --- | --- |
+| Fotos, Videos, Musik, Dokumente, Downloads | ✅ vollständig | ✅ |
+| Messenger-**Medien** (`Android/media`, z. B. WhatsApp-Bilder) | ✅ vollständig | ✅ |
+| Apps als APK (inkl. Split-APKs) | ✅ | ✅ |
+| Kontakte, SMS, Anrufliste, Kalender | ✅ als Export **und** als Importdatei (vcf/ics/xml) | ✅ |
+| Systemeinstellungen | ✅ als Dokumentation (kein Rückschreiben) | ✅ |
+| `Android/data`, `Android/obb` (Spielstände) | ⚠️ geräteabhängig, ab Android 11 oft gesperrt | ✅ |
+| **App-Daten** (Chatverläufe, Logins, Spielstände) | ❌ systembedingt nicht möglich | ✅ vollständig (`/data/data` als tar) |
+
+**Warum App-Daten ohne Root nicht gehen:** Der alte Weg `adb backup` wurde ab Android 12 von fast
+allen Apps ignoriert und ist ab Android 13 praktisch abgeschaltet – unabhängig vom PC-Programm.
+Auch Smart Switch und ähnliche Werkzeuge holen App-Daten deshalb nicht über den PC, sondern über
+die geräteeigene Übertragung. Pixel Backup blendet die Gruppe auf solchen Geräten aus und sagt
+statt dessen klar, welcher Weg funktioniert.
+
+### Empfohlener Weg für einen vollständigen Umzug
+
+1. **Pixel Backup** auf dem alten Telefon: alle Dateigruppen, Apps (APK) sowie Kontakte, SMS,
+   Anrufliste und Kalender sichern. Das ist der Teil, den man dauerhaft und prüfbar auf dem PC
+   liegen haben will.
+2. **Neues Telefon einrichten** und dabei die Android-Übertragung (Kabel oder WLAN) verwenden –
+   nur dieser Weg bringt App-Daten mit, weil er auf dem Gerät selbst läuft.
+3. **Pixel Backup ▸ Wiederherstellen** auf das neue Telefon: fehlende Dateien zurückspielen, Apps
+   nachinstallieren, Importdateien ablegen und importieren.
+4. Für einzelne Apps zusätzlich deren eigene Sicherung nutzen (WhatsApp ▸ Google Drive und ähnlich).
+
+Mit gerootetem Gerät entfällt Schritt 2: Dann sichert und restauriert Pixel Backup mit der Gruppe
+**„App-Daten vollständig (Root)“** auch `/data/data` je App (tar über `adb exec-out`, beim
+Zurückspielen inklusive Besitzer- und SELinux-Korrektur).
+
+## Weitere Grenzen
+
 * **Systemeinstellungen** werden dokumentiert, aber nicht automatisch zurückgeschrieben –
-  das Zurückschreiben einzelner Werte kann ein Gerät unbrauchbar machen.
+  einzelne Werte zurückzuschreiben kann ein Gerät unbrauchbar machen.
+* **Kontakte, SMS, Anrufliste, Kalender** werden über `content query` gelesen. Erlaubt ein Gerät
+  das nicht, meldet das Protokoll dies deutlich; alle übrigen Gruppen laufen normal weiter.
 * **Sehr lange Pfade**: Unter Windows sollte die Unterstützung langer Pfade aktiviert sein, wenn
   tief verschachtelte Ordner gesichert werden.
-
----
+* **Root-Sicherungen** enthalten auch die Cache-Ordner der Apps und sind entsprechend groß.
 
 ## Projektstruktur
 

@@ -127,6 +127,67 @@ public static class ProcessRunner
         return new ProcessResult(process.ExitCode, output, error);
     }
 
+    /// <summary>
+    /// Startet einen Prozess und schreibt dessen Standardausgabe binärsicher in eine Datei.
+    /// Wird für <c>adb exec-out</c> gebraucht (tar-Ströme dürfen nicht als Text behandelt werden).
+    /// </summary>
+    public static async Task<ProcessResult> RunToFileAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        string targetPath,
+        CancellationToken ct = default)
+    {
+        var startInfo = new ProcessStartInfo(fileName)
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        var directory = Path.GetDirectoryName(targetPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+
+        try
+        {
+            process.Start();
+        }
+        catch (Exception ex)
+        {
+            throw new AdbException($"Der Prozess '{fileName}' konnte nicht gestartet werden: {ex.Message}", ex);
+        }
+
+        var errorTask = process.StandardError.ReadToEndAsync();
+
+        try
+        {
+            await using (var file = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await process.StandardOutput.BaseStream.CopyToAsync(file, 81920, ct).ConfigureAwait(false);
+            }
+
+            await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKill(process);
+            throw;
+        }
+
+        var error = await errorTask.ConfigureAwait(false);
+        return new ProcessResult(process.ExitCode, string.Empty, error);
+    }
+
     private static void TryKill(Process process)
     {
         try

@@ -191,6 +191,7 @@ public sealed class AdbClient
 
         await FillStorageAsync(serial, info, ct).ConfigureAwait(false);
         await FillBatteryAsync(serial, info, ct).ConfigureAwait(false);
+        info.RootAccess = await DetectRootAsync(serial, ct).ConfigureAwait(false);
         return info;
     }
 
@@ -471,6 +472,92 @@ public sealed class AdbClient
             serial,
             $"am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file://{remotePath.Replace(" ", "%20")} >/dev/null 2>&1",
             ct);
+
+    // ------------------------------------------------------------------- Root
+
+    /// <summary>Prüft, ob und auf welchem Weg Root-Rechte zur Verfügung stehen.</summary>
+    public async Task<RootMode> DetectRootAsync(string serial, CancellationToken ct = default)
+    {
+        var direct = await ShellTextAsync(serial, "id", ct).ConfigureAwait(false);
+        if (direct.Contains("uid=0(", StringComparison.Ordinal))
+        {
+            return RootMode.AdbRoot;
+        }
+
+        var su = await ShellAsync(serial, "su -c id 2>/dev/null", ct).ConfigureAwait(false);
+        if (su.StandardOutput.Contains("uid=0(", StringComparison.Ordinal))
+        {
+            return RootMode.Su;
+        }
+
+        return RootMode.None;
+    }
+
+    /// <summary>Verpackt ein Shell-Kommando so, dass es mit Root-Rechten läuft.</summary>
+    public static string WrapRoot(string command, RootMode mode) => mode switch
+    {
+        RootMode.AdbRoot => command,
+        RootMode.Su => "su -c " + Quote(command),
+        _ => throw new AdbException("Für diesen Vorgang werden Root-Rechte benötigt.")
+    };
+
+    public Task<ProcessResult> RootShellAsync(string serial, string command, RootMode mode, CancellationToken ct = default) =>
+        ShellAsync(serial, WrapRoot(command, mode), ct);
+
+    /// <summary>
+    /// Führt ein Kommando aus und schreibt dessen Ausgabe binärsicher in eine Datei
+    /// (<c>adb exec-out</c>) – etwa einen tar-Strom der App-Daten.
+    /// </summary>
+    public async Task<ProcessResult> ExecOutToFileAsync(
+        string serial,
+        string command,
+        string localPath,
+        CancellationToken ct = default)
+    {
+        _log.Debug($"adb exec-out {command}");
+        return await ProcessRunner
+            .RunToFileAsync(AdbPath, ForDevice(serial, "exec-out", command), localPath, ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Liest die Linux-Benutzerkennung eines installierten Paketes.</summary>
+    public async Task<string?> GetPackageUidAsync(string serial, string packageName, CancellationToken ct = default)
+    {
+        var output = await ShellTextAsync(serial, $"dumpsys package {Quote(packageName)} | grep -m 1 userId=", ct)
+            .ConfigureAwait(false);
+
+        var match = Regex.Match(output, @"userId=(\d+)");
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    /// <summary>Ermittelt die Größe der App-Datenordner (nur mit Root lesbar).</summary>
+    public async Task<Dictionary<string, long>> GetAppDataSizesAsync(
+        string serial,
+        IEnumerable<string> packageNames,
+        RootMode mode,
+        CancellationToken ct = default)
+    {
+        var sizes = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        foreach (var chunk in Chunk(packageNames, 30))
+        {
+            ct.ThrowIfCancellationRequested();
+            var inner = "for p in " + string.Join(" ", chunk.Select(Quote)) +
+                        "; do echo \"$p|$(du -sk /data/data/$p 2>/dev/null | cut -f1)\"; done";
+
+            var result = await RootShellAsync(serial, inner, mode, ct).ConfigureAwait(false);
+            foreach (var line in result.OutputLines)
+            {
+                var parts = line.Trim().Split('|');
+                if (parts.Length == 2 && long.TryParse(parts[1].Trim(), out var kilobytes))
+                {
+                    sizes[parts[0]] = kilobytes * 1024L;
+                }
+            }
+        }
+
+        return sizes;
+    }
 
     // ------------------------------------------------------------------- Apps
 

@@ -31,23 +31,28 @@ public sealed class RestoreService
         var fileEntries = entries.Where(e => e.Type == BackupEntryType.File).ToList();
         var apkEntries = entries.Where(e => e.Type == BackupEntryType.Apk).ToList();
         var legacyEntries = entries.Where(e => e.Type == BackupEntryType.LegacyAppData).ToList();
+        var rootDataEntries = entries.Where(e => e.Type == BackupEntryType.RootAppData).ToList();
+        var importEntries = entries.Where(e => e.Type == BackupEntryType.ImportFile).ToList();
         var exportEntries = entries
             .Where(e => e.Type is BackupEntryType.ContentExport or BackupEntryType.SettingsExport)
             .ToList();
 
-        if (exportEntries.Count > 0)
+        if (exportEntries.Count > 0 && importEntries.Count == 0)
         {
             result.Warnings.Add(
-                "Kontakte, Nachrichten und Systemeinstellungen wurden als Datenexport gesichert und lassen sich nicht automatisch zurückschreiben. " +
-                "Die Dateien liegen im Ordner 'data' des Sicherungssatzes.");
+                "Kontakte, Nachrichten und Systemeinstellungen wurden als Rohdaten gesichert und lassen sich nicht " +
+                "automatisch zurückschreiben. Die Dateien liegen im Ordner 'data' des Sicherungssatzes.");
         }
 
         var appGroups = apkEntries
             .GroupBy(e => e.PackageName ?? "unbekannt")
             .ToList();
 
-        var itemsTotal = fileEntries.Count + (options.InstallApps ? appGroups.Count : 0) +
-                         (options.RestoreLegacyAppData ? legacyEntries.Count : 0);
+        var itemsTotal = fileEntries.Count +
+                         (options.InstallApps ? appGroups.Count : 0) +
+                         (options.RestoreLegacyAppData ? legacyEntries.Count : 0) +
+                         (options.RestoreRootAppData ? rootDataEntries.Count : 0) +
+                         (options.PlaceImportFiles ? importEntries.Count : 0);
         var bytesTotal = fileEntries.Sum(e => Math.Max(0, e.Size));
         long bytesDone = 0;
         var itemsDone = 0;
@@ -224,7 +229,90 @@ public sealed class RestoreService
                 }
             }
 
-            // 4) Medienscanner anstoßen, damit Fotos und Videos sofort in der Galerie erscheinen.
+            // 4) Vollständige App-Daten (nur mit Root)
+            if (options.RestoreRootAppData && rootDataEntries.Count > 0)
+            {
+                var mode = await _adb.DetectRootAsync(serial, ct).ConfigureAwait(false);
+                if (mode == RootMode.None)
+                {
+                    result.Warnings.Add(
+                        "Die vollständigen App-Daten konnten nicht zurückgespielt werden: Das Zielgerät bietet keinen Root-Zugriff.");
+                }
+                else
+                {
+                    foreach (var entry in rootDataEntries)
+                    {
+                        ct.ThrowIfCancellationRequested();
+
+                        progress?.Report(new OperationProgress
+                        {
+                            Phase = "App-Daten werden zurückgespielt",
+                            CurrentItem = entry.PackageName ?? entry.RelativePath,
+                            ItemsDone = itemsDone,
+                            ItemsTotal = itemsTotal,
+                            BytesDone = bytesDone,
+                            BytesTotal = bytesTotal,
+                            Elapsed = stopwatch.Elapsed
+                        });
+
+                        itemsDone++;
+                        await RestoreRootAppDataAsync(serial, options, entry, mode, result, ct).ConfigureAwait(false);
+                    }
+                }
+            }
+
+            // 5) Importdateien für Kontakte, Nachrichten und Termine ablegen
+            if (options.PlaceImportFiles && importEntries.Count > 0)
+            {
+                await _adb.MakeDirectoryAsync(serial, ImportFolder, ct).ConfigureAwait(false);
+
+                foreach (var entry in importEntries)
+                {
+                    ct.ThrowIfCancellationRequested();
+
+                    progress?.Report(new OperationProgress
+                    {
+                        Phase = "Importdateien werden abgelegt",
+                        CurrentItem = Path.GetFileName(entry.RelativePath),
+                        ItemsDone = itemsDone,
+                        ItemsTotal = itemsTotal,
+                        BytesDone = bytesDone,
+                        BytesTotal = bytesTotal,
+                        Elapsed = stopwatch.Elapsed
+                    });
+
+                    itemsDone++;
+
+                    var localPath = options.Set.LocalPathOf(entry);
+                    if (!File.Exists(localPath))
+                    {
+                        continue;
+                    }
+
+                    var fileName = Path.GetFileName(entry.RelativePath);
+                    var target = ImportFolder + "/" + fileName;
+                    var push = await _adb.PushAsync(serial, localPath, target, ct).ConfigureAwait(false);
+
+                    if (push.Success)
+                    {
+                        result.ImportFilesPlaced++;
+                        _log.Info($"Importdatei auf dem Gerät abgelegt: {target}");
+                    }
+                    else
+                    {
+                        result.Warnings.Add($"{fileName} konnte nicht abgelegt werden: {push.ErrorSummary}");
+                    }
+                }
+
+                if (result.ImportFilesPlaced > 0)
+                {
+                    result.Warnings.Add(
+                        $"Kontakte, Nachrichten und Termine liegen als Importdateien unter {ImportFolder} auf dem Gerät. " +
+                        "Die Anleitung dazu steht in 'umzug-anleitung.txt' im Sicherungssatz.");
+                }
+            }
+
+            // 6) Medienscanner anstoßen, damit Fotos und Videos sofort in der Galerie erscheinen.
             if (scanPaths.Count > 0)
             {
                 progress?.Report(new OperationProgress
@@ -253,6 +341,84 @@ public sealed class RestoreService
         result.Duration = stopwatch.Elapsed;
         _log.Info("Wiederherstellung beendet: " + result.SummaryText);
         return result;
+    }
+
+    /// <summary>Zielordner für Dateien, die am Gerät importiert werden sollen.</summary>
+    public const string ImportFolder = "/sdcard/PixelBackup-Import";
+
+    /// <summary>
+    /// Spielt das tar-Archiv der App-Daten zurück: entpacken, Besitzer und SELinux-Kontext
+    /// richtigstellen. Die App muss dafür bereits installiert sein.
+    /// </summary>
+    private async Task RestoreRootAppDataAsync(
+        string serial,
+        RestoreOptions options,
+        BackupEntry entry,
+        RootMode mode,
+        RestoreResult result,
+        CancellationToken ct)
+    {
+        var package = entry.PackageName;
+        var localPath = options.Set.LocalPathOf(entry);
+
+        if (string.IsNullOrEmpty(package) || !File.Exists(localPath))
+        {
+            result.FilesFailed++;
+            return;
+        }
+
+        var installed = await _adb.ShellTextAsync(serial, $"pm path {AdbClient.Quote(package)}", ct).ConfigureAwait(false);
+        if (!installed.Contains("package:", StringComparison.Ordinal))
+        {
+            result.Warnings.Add($"{package} ist nicht installiert – die App-Daten wurden übersprungen.");
+            return;
+        }
+
+        var temporary = $"/data/local/tmp/pixelbackup-{PathMapper.SanitizeSegment(package)}.tar";
+
+        try
+        {
+            var push = await _adb.PushAsync(serial, localPath, temporary, ct).ConfigureAwait(false);
+            if (!push.Success)
+            {
+                result.Warnings.Add($"{package}: Das Datenarchiv konnte nicht übertragen werden ({push.ErrorSummary}).");
+                result.FilesFailed++;
+                return;
+            }
+
+            await _adb.RootShellAsync(serial, $"am force-stop {package}", mode, ct).ConfigureAwait(false);
+
+            var extract = await _adb
+                .RootShellAsync(serial, $"tar -x -f {temporary} -C /data/data", mode, ct)
+                .ConfigureAwait(false);
+
+            if (!extract.Success)
+            {
+                result.Warnings.Add($"{package}: Die App-Daten konnten nicht entpackt werden ({extract.ErrorSummary}).");
+                result.FilesFailed++;
+                return;
+            }
+
+            var uid = await _adb.GetPackageUidAsync(serial, package, ct).ConfigureAwait(false);
+            if (uid is not null)
+            {
+                await _adb
+                    .RootShellAsync(serial, $"chown -R {uid}:{uid} /data/data/{package}", mode, ct)
+                    .ConfigureAwait(false);
+            }
+
+            await _adb
+                .RootShellAsync(serial, $"restorecon -R /data/data/{package}", mode, ct)
+                .ConfigureAwait(false);
+
+            result.AppDataRestored++;
+            result.BytesRestored += Math.Max(0, entry.Size);
+            _log.Info($"App-Daten zurückgespielt: {package}");
+        }
+        finally
+        {
+            await _adb.RootShellAsync(serial, $"rm -f {temporary}", mode, ct).ConfigureAwait(false);
+        }
     }
 
     private static bool IsMedia(string remotePath)

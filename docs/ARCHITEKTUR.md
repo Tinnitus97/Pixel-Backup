@@ -33,6 +33,9 @@ Alles läuft über Prozessaufrufe an `adb`; es gibt keine gerätespezifischen So
 | Apps installieren | `adb install -r` bzw. `adb install-multiple -r` |
 | Datenexporte | `adb shell content query --uri …`, `adb shell settings list …` |
 | App-Daten (klassisch) | `adb backup` / `adb restore` |
+| Root erkennen | `adb shell id`, `adb shell su -c id` |
+| App-Daten mit Root | `adb exec-out su -c 'tar -c -C /data/data <paket>'` |
+| App-Daten zurück (Root) | `adb push` ▸ `tar -x -C /data/data` ▸ `chown` ▸ `restorecon` |
 
 Kennt die Geräte-Shell kein `stat` oder kein `find -exec … +`, fällt die Dateisuche automatisch auf
 ein reines `find -type f` zurück; die Größen werden dann beim Kopieren ermittelt.
@@ -63,6 +66,30 @@ automatisch, solange eine Sicherung läuft.
 
 Die MVVM-Basis (`ObservableObject`, `RelayCommand`, `AsyncRelayCommand`) ist bewusst selbst
 geschrieben – das Projekt kommt damit ohne weitere Abhängigkeiten neben Avalonia aus.
+
+## Umzugshilfen
+
+Nach jedem Lauf erzeugt `ImportFileBuilder` aus den Rohdaten der Content-Provider Dateien, die
+ein neues Telefon direkt versteht: `kontakte.vcf` (vCard 3.0, Telefon- und E-Mail-Datensätze
+werden über `contact_id` zusammengeführt), `kalender.ics`, sowie `sms.xml` und `anrufliste.xml`
+im Format der App „SMS Backup & Restore“. Diese Dateien landen als eigene Manifest-Einträge
+(`ImportFile`) im Satz und werden beim Wiederherstellen nach `/sdcard/PixelBackup-Import`
+geschoben.
+
+Die Erzeugung ist von der Sicherung entkoppelt: `ImportFileBuilder.BuildAsync` arbeitet allein
+auf einem vorhandenen Satz und lässt sich daher auch nachträglich auf ältere Sätze anwenden.
+
+## Root-Betrieb
+
+`AdbClient.DetectRootAsync` prüft zuerst, ob adbd selbst als root läuft (userdebug-Abbilder),
+danach `su` (Magisk). Der ermittelte Modus steckt in `DeviceInfo.RootAccess` und im `BackupPlan`.
+Die Sicherung schreibt den tar-Strom über `adb exec-out` binärsicher in eine Datei – deshalb gibt
+es neben `ProcessRunner.RunAsync` die Variante `RunToFileAsync`, die die Standardausgabe roh in
+einen `FileStream` kopiert, statt sie als Text einzulesen.
+
+Beim Zurückspielen wird die App zuerst installiert, dann gestoppt (`am force-stop`), das Archiv
+nach `/data/local/tmp` geschoben, nach `/data/data` entpackt und anschließend der Besitzer
+(numerische UID aus `dumpsys package`) sowie der SELinux-Kontext (`restorecon -R`) richtiggestellt.
 
 ## Datenformate
 

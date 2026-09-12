@@ -56,6 +56,15 @@ public sealed class RestoreOptions
 
     public bool RestoreLegacyAppData { get; init; }
 
+    /// <summary>Vollständige App-Daten aus tar-Archiven zurückspielen (benötigt Root).</summary>
+    public bool RestoreRootAppData { get; init; }
+
+    /// <summary>
+    /// Erzeugte Importdateien (kontakte.vcf, sms.xml, kalender.ics …) auf dem Gerät ablegen,
+    /// damit sie dort importiert werden können.
+    /// </summary>
+    public bool PlaceImportFiles { get; init; } = true;
+
     /// <summary>Löst nach dem Kopieren den Medienscanner aus, damit Fotos sofort erscheinen.</summary>
     public bool TriggerMediaScan { get; init; } = true;
 }

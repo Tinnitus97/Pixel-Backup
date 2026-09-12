@@ -129,6 +129,18 @@ public static class CategoryCatalog
         },
         new()
         {
+            Id = "appdatafolders",
+            DisplayName = "App-Ordner im Speicher (Android/data)",
+            Description = "Spielstände und App-Dateien aus /sdcard/Android/data und /sdcard/Android/obb.",
+            Icon = "🎮",
+            Kind = BackupCategoryKind.Files,
+            RemoteDirectories = new[] { "/sdcard/Android/data", "/sdcard/Android/obb" },
+            Extensions = Array.Empty<string>(),
+            SelectedByDefault = false,
+            Caveat = "Ab Android 11 sperren viele Geräte diesen Ordner auch für adb. Pixel Backup versucht es und meldet, was gelesen werden konnte."
+        },
+        new()
+        {
             Id = "apps",
             DisplayName = "Apps (APK)",
             Description = "Die Installationsdateien aller selbst installierten Apps inklusive Split-APKs.",
@@ -138,13 +150,24 @@ public static class CategoryCatalog
         },
         new()
         {
+            Id = "rootappdata",
+            DisplayName = "App-Daten vollständig (Root)",
+            Description = "Sichert /data/data je App als tar-Archiv – der einzige vollständige Weg für Spielstände und Chatverläufe.",
+            Icon = "🔐",
+            Kind = BackupCategoryKind.RootAppData,
+            SelectedByDefault = false,
+            RequiresRoot = true,
+            Caveat = "Benötigt ein gerootetes Gerät (Magisk) oder ein userdebug-Abbild. Ohne Root nicht auswählbar."
+        },
+        new()
+        {
             Id = "appdata",
-            DisplayName = "App-Daten (klassisch)",
-            Description = "Sicherung über den eingebauten Android-Sicherungsdienst (adb backup).",
+            DisplayName = "App-Daten (klassisch, adb backup)",
+            Description = "Sicherung über den alten Android-Sicherungsdienst.",
             Icon = "🗄",
             Kind = BackupCategoryKind.AppData,
             SelectedByDefault = false,
-            Caveat = "Muss am Gerät bestätigt werden. Ab Android 12 liefern die meisten Apps keine Daten mehr."
+            Caveat = "Nur für ältere Geräte sinnvoll: Ab Android 12 liefern die meisten Apps nichts mehr, ab Android 13/14 ist der Weg praktisch tot."
         },
         new()
         {
@@ -153,8 +176,13 @@ public static class CategoryCatalog
             Description = "Export der Kontaktdatenbank über den Android-Content-Provider.",
             Icon = "👤",
             Kind = BackupCategoryKind.ContentProvider,
-            Sources = new[] { "content://com.android.contacts/data/phones" },
-            Caveat = "Rohdatenexport – zur Wiederherstellung am Gerät wird der Google-Kontakte-Abgleich empfohlen."
+            Sources = new[]
+            {
+                "content://com.android.contacts/data/phones",
+                "content://com.android.contacts/data/emails"
+            },
+            Import = ImportFormat.VCard,
+            Caveat = "Erzeugt zusätzlich eine vCard-Datei (kontakte.vcf), die sich auf jedem neuen Telefon importieren lässt."
         },
         new()
         {
@@ -164,8 +192,9 @@ public static class CategoryCatalog
             Icon = "✉",
             Kind = BackupCategoryKind.ContentProvider,
             Sources = new[] { "content://sms", "content://mms" },
+            Import = ImportFormat.SmsXml,
             SelectedByDefault = false,
-            Caveat = "Funktioniert nur, wenn das Gerät den Zugriff über die adb-Shell erlaubt."
+            Caveat = "Erzeugt zusätzlich sms.xml im Format von „SMS Backup & Restore“ – damit lassen sich die Nachrichten auf dem neuen Telefon einspielen."
         },
         new()
         {
@@ -175,8 +204,21 @@ public static class CategoryCatalog
             Icon = "📞",
             Kind = BackupCategoryKind.ContentProvider,
             Sources = new[] { "content://call_log/calls" },
+            Import = ImportFormat.CallsXml,
             SelectedByDefault = false,
-            Caveat = "Funktioniert nur, wenn das Gerät den Zugriff über die adb-Shell erlaubt."
+            Caveat = "Erzeugt zusätzlich anrufliste.xml für „SMS Backup & Restore“."
+        },
+        new()
+        {
+            Id = "calendar",
+            DisplayName = "Kalender",
+            Description = "Termine aus dem Gerätekalender.",
+            Icon = "📅",
+            Kind = BackupCategoryKind.ContentProvider,
+            Sources = new[] { "content://com.android.calendar/events" },
+            Import = ImportFormat.Ics,
+            SelectedByDefault = false,
+            Caveat = "Erzeugt zusätzlich kalender.ics zum Import auf dem neuen Telefon."
         },
         new()
         {

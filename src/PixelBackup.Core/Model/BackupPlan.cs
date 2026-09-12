@@ -1,3 +1,4 @@
+using PixelBackup.Core.Adb;
 using PixelBackup.Core.Util;
 
 namespace PixelBackup.Core.Model;
@@ -44,6 +45,9 @@ public sealed class PlannedItem
 public sealed class BackupPlan
 {
     public DeviceInfo Device { get; init; } = new();
+
+    /// <summary>Root-Zugriff, der beim Planen festgestellt wurde.</summary>
+    public RootMode RootAccess { get; set; } = RootMode.None;
 
     public List<PlannedItem> Items { get; } = new();
 

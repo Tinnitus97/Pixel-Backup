@@ -108,6 +108,12 @@ public sealed class RestoreResult
 
     public int AppsFailed { get; set; }
 
+    /// <summary>Anzahl der zurückgespielten App-Daten-Archive (Root).</summary>
+    public int AppDataRestored { get; set; }
+
+    /// <summary>Anzahl der auf dem Gerät abgelegten Importdateien (vCard, ICS, XML).</summary>
+    public int ImportFilesPlaced { get; set; }
+
     public long BytesRestored { get; set; }
 
     public bool Canceled { get; set; }
@@ -124,6 +130,16 @@ public sealed class RestoreResult
             if (AppsInstalled > 0)
             {
                 text += $", {Humanize.Count(AppsInstalled, "App", "Apps")} installiert";
+            }
+
+            if (AppDataRestored > 0)
+            {
+                text += $", App-Daten für {AppDataRestored} Apps";
+            }
+
+            if (ImportFilesPlaced > 0)
+            {
+                text += $", {Humanize.Count(ImportFilesPlaced, "Importdatei", "Importdateien")} abgelegt";
             }
 
             if (FilesSkipped > 0)

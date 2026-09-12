@@ -51,6 +51,8 @@ public sealed class RestoreViewModel : ViewModelBase
     private bool _installApps = true;
     private bool _allowDowngrade;
     private bool _restoreLegacyAppData;
+    private bool _restoreRootAppData = true;
+    private bool _placeImportFiles = true;
     private bool _isRunning;
     private string _resultText = string.Empty;
 
@@ -150,6 +152,20 @@ public sealed class RestoreViewModel : ViewModelBase
     {
         get => _restoreLegacyAppData;
         set => SetProperty(ref _restoreLegacyAppData, value);
+    }
+
+    /// <summary>Vollständige App-Daten zurückspielen – nur möglich, wenn beide Geräte Root bieten.</summary>
+    public bool RestoreRootAppData
+    {
+        get => _restoreRootAppData;
+        set => SetProperty(ref _restoreRootAppData, value);
+    }
+
+    /// <summary>Kontakte-, Nachrichten- und Kalenderdateien zum Importieren auf dem Gerät ablegen.</summary>
+    public bool PlaceImportFiles
+    {
+        get => _placeImportFiles;
+        set => SetProperty(ref _placeImportFiles, value);
     }
 
     public bool IsRunning
@@ -276,7 +292,9 @@ public sealed class RestoreViewModel : ViewModelBase
                 ConflictMode = SelectedConflictOption.Mode,
                 InstallApps = InstallApps,
                 AllowDowngrade = AllowDowngrade,
-                RestoreLegacyAppData = RestoreLegacyAppData
+                RestoreLegacyAppData = RestoreLegacyAppData,
+                RestoreRootAppData = RestoreRootAppData,
+                PlaceImportFiles = PlaceImportFiles
             };
 
             var progress = new Progress<OperationProgress>(p => Progress.Update(p));

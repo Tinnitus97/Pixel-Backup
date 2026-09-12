@@ -11,6 +11,8 @@ public sealed class CategoryItemViewModel : ObservableObject
     private int _itemCount;
     private long _bytes;
     private bool _analyzed;
+    private bool _isAvailable = true;
+    private string _unavailableReason = string.Empty;
 
     public CategoryItemViewModel(BackupCategory category, bool isSelected)
     {
@@ -41,6 +43,49 @@ public sealed class CategoryItemViewModel : ObservableObject
             {
                 SelectionChanged?.Invoke();
             }
+        }
+    }
+
+    /// <summary>Falsch, wenn die Gruppe auf diesem Gerät nicht möglich ist (z. B. ohne Root).</summary>
+    public bool IsAvailable
+    {
+        get => _isAvailable;
+        private set
+        {
+            if (SetProperty(ref _isAvailable, value))
+            {
+                OnPropertyChanged(nameof(NoteText));
+                OnPropertyChanged(nameof(HasNote));
+            }
+        }
+    }
+
+    public string UnavailableReason
+    {
+        get => _unavailableReason;
+        private set
+        {
+            if (SetProperty(ref _unavailableReason, value))
+            {
+                OnPropertyChanged(nameof(NoteText));
+                OnPropertyChanged(nameof(HasNote));
+            }
+        }
+    }
+
+    /// <summary>Hinweiszeile: entweder der Grund für die Sperre oder der Kategoriehinweis.</summary>
+    public string NoteText => IsAvailable ? Caveat ?? string.Empty : UnavailableReason;
+
+    public bool HasNote => !string.IsNullOrWhiteSpace(NoteText);
+
+    public void SetAvailability(bool available, string reason)
+    {
+        UnavailableReason = reason;
+        IsAvailable = available;
+
+        if (!available && IsSelected)
+        {
+            IsSelected = false;
         }
     }
 
