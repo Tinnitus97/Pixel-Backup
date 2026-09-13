@@ -275,7 +275,7 @@ public static class ImportExporters
 
     private static string EscapeVCard(string value) => value
         .Replace("\\", "\\\\", StringComparison.Ordinal)
-        .Replace(";", "\;", StringComparison.Ordinal)
+        .Replace(";", "\\;", StringComparison.Ordinal)
         .Replace(",", "\\,", StringComparison.Ordinal)
         .Replace("\r\n", "\\n", StringComparison.Ordinal)
         .Replace("\n", "\\n", StringComparison.Ordinal);

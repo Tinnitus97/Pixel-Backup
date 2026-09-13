@@ -25,6 +25,8 @@ public sealed class AppSession : ObservableObject, IDisposable
     private AdbDevice? _selectedDevice;
     private DeviceInfo? _deviceInfo;
     private string _adbStatus = Loc.Tr("adb wird gesucht …", "looking for adb …");
+    private string? _adbVersionText;
+    private string? _adbLocation;
     private bool _adbAvailable;
     private bool _isBusy;
     private string _busyDescription = string.Empty;
@@ -40,6 +42,9 @@ public sealed class AppSession : ObservableObject, IDisposable
         Log = new CompositeLogSink(_fileLog, new DelegateLogSink(AppendLogEntry));
         Repository = new BackupRepository(Settings.BackupRoot, Log);
         Components = new ComponentService(this);
+
+        // Die Statuszeile ist ein gemerkter Satz – nach einem Sprachwechsel neu bilden.
+        Localizer.I.LanguageChanged += UpdateAdbStatus;
     }
 
     /// <summary>Prüfung und Einrichtung von adb und USB-Treiber.</summary>
@@ -187,9 +192,9 @@ public sealed class AppSession : ObservableObject, IDisposable
         if (path is null)
         {
             AdbAvailable = false;
-            AdbStatus = Loc.Tr(
-                "adb wurde nicht gefunden. Bitte unter „Komponenten“ einrichten lassen.",
-                "adb was not found. Please set it up under \"Components\".");
+            _adbVersionText = null;
+            _adbLocation = null;
+            UpdateAdbStatus();
             Log.Warn(AdbStatus);
             return;
         }
@@ -201,7 +206,9 @@ public sealed class AppSession : ObservableObject, IDisposable
             await _adb.StartServerAsync().ConfigureAwait(false);
             var version = await _adb.GetVersionAsync().ConfigureAwait(false);
             AdbAvailable = true;
-            AdbStatus = $"{version} · {path}";
+            _adbVersionText = version;
+            _adbLocation = path;
+            UpdateAdbStatus();
             Log.Info(Loc.Tr("adb bereit: ", "adb ready: ") + AdbStatus);
         }
         catch (Exception ex)
@@ -215,6 +222,14 @@ public sealed class AppSession : ObservableObject, IDisposable
         StartWatcher();
         await RefreshDevicesAsync().ConfigureAwait(false);
     }
+
+    /// <summary>Bildet die Statuszeile in der aktuellen Sprache neu.</summary>
+    private void UpdateAdbStatus() =>
+        AdbStatus = _adbLocation is null
+            ? Loc.Tr(
+                "adb wurde nicht gefunden. Bitte unter „Komponenten“ einrichten lassen.",
+                "adb was not found. Please set it up under \"Components\".")
+            : $"{_adbVersionText} · {_adbLocation}";
 
     private void StartWatcher()
     {

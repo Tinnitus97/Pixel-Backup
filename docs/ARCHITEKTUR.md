@@ -123,6 +123,20 @@ Treiber (`Win32_PnPSignedDriver`). Die Installation läuft über `pnputil /add-d
 mit Rückfrage der Benutzerkontensteuerung. Auf Linux und macOS meldet der Dienst „nicht
 erforderlich“ samt Hinweis auf die udev-Regeln.
 
+## Stand der Prüfung
+
+Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
+`dotnet test` meldet 63 bestandene Tests, und die Anwendung wurde unter X11 gestartet und
+durchgeklickt. Dabei sind drei Fehler aufgefallen und behoben worden:
+
+* `PlatformToolsInstaller.ParseVersion` las die Protokollfassung „1.0.41“ statt der
+  Werkzeugfassung – dadurch hätte die Aktualisierungsprüfung immer ein Update gemeldet.
+* Nach einem Sprachwechsel blieben zwei gemerkte Sätze (Plan-Zusammenfassung, adb-Statuszeile)
+  in der alten Sprache stehen; beide werden jetzt neu gebildet.
+* Ein Anheben von `Tmds.DBus.Protocol` auf 0.94.2 (gegen eine Sicherheitsmeldung) brach den
+  Start unter Linux, weil Avalonia 11.2.3 die ältere Schnittstelle erwartet. Gelöst über
+  Avalonia 11.3.22, das die geprüfte Fassung selbst mitbringt.
+
 ## Datenformate
 
 * `manifest.json` – Schemaversion, Gerät, Kategorien, alle Einträge (Gerätepfad, lokaler Pfad,

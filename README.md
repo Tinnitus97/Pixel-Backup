@@ -21,41 +21,57 @@ OnePlus, Motorola, Sony, Fairphone und andere.
 
 ## Oberfläche
 
-> **Hinweis:** Die folgenden Bilder sind maßstabsgetreue Layout-Darstellungen der Oberfläche
-> (1180 × 780, direkt aus dem XAML nachgebaut) – keine Aufnahmen eines laufenden Programms.
-> Die Quelldateien dazu liegen unter `docs/screenshots/`.
+### Echte Aufnahmen des laufenden Programms
 
-**Gerät** – Verbindungsstatus, Geräteinformationen inklusive Root-Erkennung, WLAN-Kopplung
+Gebaut mit dem .NET-10-SDK, gestartet unter X11; im Testlauf war **kein Gerät angeschlossen** und
+es lagen **keine Sicherungen** vor – deshalb sind die Listen leer und die Schaltflächen gesperrt.
 
-![Ansicht „Gerät“](docs/screenshots/01-geraet.png)
+**Gerät** – ohne angeschlossenes Telefon; unten rechts meldet die Statuszeile den fehlenden adb-Stand
 
-**Sichern** – laufende Sicherung mit Fortschritt, Geschwindigkeit und Restzeit
+![Ansicht „Gerät“](docs/screenshots/live/01-geraet.png)
 
-![Ansicht „Sichern“ während einer laufenden Sicherung](docs/screenshots/02-sichern-laeuft.png)
+**Sichern** – die Gruppenliste mit Beschreibungen und Hinweisen
+
+![Ansicht „Sichern“](docs/screenshots/live/02-sichern.png)
+
+**Wiederherstellen** – Satzliste, Konfliktstrategie und Optionen
+
+![Ansicht „Wiederherstellen“](docs/screenshots/live/03-wiederherstellen.png)
+
+**Einstellungen** – Sprache und Erscheinungsbild mit dem, was am System erkannt wurde
+
+![Ansicht „Einstellungen“](docs/screenshots/live/04-einstellungen.png)
+
+**Komponenten, dunkles Erscheinungsbild** – adb fehlt und kann installiert werden; unter Linux
+wird kein USB-Treiber benötigt
+
+![Ansicht „Komponenten“ im dunklen Erscheinungsbild](docs/screenshots/live/05-komponenten-dunkel.png)
+
+**English** – dasselbe Programm auf einem System mit englischer Anzeigesprache (keine Einstellung
+nötig, die Sprache wird erkannt)
+
+![Components view in English](docs/screenshots/live/06-components-english.png)
+
+### Mit angeschlossenem Gerät
+
+Diese Bilder sind **maßstabsgetreue Layout-Darstellungen** aus dem XAML (kein Testlauf), weil hier
+kein Android-Gerät und keine Sicherungen zur Verfügung standen:
+
+**Sichern mit laufender Sicherung** – Fortschritt, Geschwindigkeit und Restzeit
+
+![Sichern während einer laufenden Sicherung](docs/screenshots/02-sichern-laeuft.png)
 
 **Gruppen** – auf Android 13+ werden nicht mögliche Gruppen gesperrt und begründet
 
 ![Gruppenauswahl mit gesperrten Gruppen](docs/screenshots/03-gruppen.png)
 
-**Wiederherstellen** (dunkles Erscheinungsbild) – Satz, Gruppen, Konfliktstrategie und Importdateien
+**Wiederherstellen** (dunkel) – mit Sicherungssätzen und Gruppen
 
-![Ansicht „Wiederherstellen“](docs/screenshots/04-wiederherstellen-dunkel.png)
+![Wiederherstellen mit Daten](docs/screenshots/04-wiederherstellen-dunkel.png)
 
-**Sicherungen** – Übersicht, Inhalt und Laufhistorie eines Satzes
+**Sicherungen** – Inhalt und Laufhistorie eines Satzes
 
-![Ansicht „Sicherungen“](docs/screenshots/05-sicherungen.png)
-
-**Komponenten** – adb und USB-Treiber prüfen, installieren und aktualisieren
-
-![Ansicht „Komponenten“](docs/screenshots/06-komponenten.png)
-
-**Einstellungen** (dunkles Erscheinungsbild) – Sprache, Erscheinungsbild, Ordner, Automatik
-
-![Ansicht „Einstellungen“](docs/screenshots/07-einstellungen-dunkel.png)
-
-**English** – dieselbe Anwendung nach Umschalten auf Englisch (oder auf einem englischen System)
-
-![Backup view in English](docs/screenshots/08-backup-english-dark.png)
+![Sicherungen mit Daten](docs/screenshots/05-sicherungen.png)
 
 ---
 
@@ -179,8 +195,9 @@ dotnet build -c Release
 dotnet run --project src/PixelBackup.App
 ```
 
-Die Oberfläche baut auf Avalonia 11.2.3 auf; ein Wechsel auf Avalonia 12 ist ohne Codeänderungen
-möglich (Paketversionen in `src/PixelBackup.App/PixelBackup.App.csproj`).
+Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 63 grüne
+Tests, und die Anwendung startet unter X11 (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:
 

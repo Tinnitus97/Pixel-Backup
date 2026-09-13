@@ -51,7 +51,12 @@ public abstract class ViewModelBase : ObservableObject
         OnPropertyChanged(string.Empty);
     }
 
-    private void OnLanguageChanged() => RefreshTexts();
+    private void OnLanguageChanged()
+    {
+        // Die letzte Meldung stammt aus der alten Sprache – lieber nichts als halb übersetzt.
+        StatusMessage = string.Empty;
+        RefreshTexts();
+    }
 
     /// <summary>Wird aufgerufen, sobald die Seite angezeigt wird.</summary>
     public virtual Task ActivateAsync() => Task.CompletedTask;

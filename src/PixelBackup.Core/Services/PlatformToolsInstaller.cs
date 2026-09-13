@@ -15,8 +15,11 @@ public sealed class PlatformToolsInstaller
 {
     public const string PackagePath = "platform-tools";
 
+    // Achtung: "adb version" nennt zuerst die Protokollfassung ("Android Debug Bridge
+    // version 1.0.41") und erst danach die Werkzeugfassung ("Version 35.0.2-12147458").
+    // Deshalb zeilenweise und ohne IgnoreCase suchen – sonst wird 1.0.41 gelesen.
     private static readonly Regex VersionPattern =
-        new(@"Version\s+(\d+)\.(\d+)\.(\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        new(@"^Version\s+(\d+)\.(\d+)\.(\d+)", RegexOptions.Compiled | RegexOptions.Multiline);
 
     private readonly ILogSink _log;
     private readonly SdkRepositoryClient _client;

@@ -80,6 +80,8 @@ public sealed class BackupViewModel : ViewModelBase
             item.RefreshTexts();
         }
 
+        // Gespeicherte Sätze stehen noch in der alten Sprache und müssen neu gebildet werden.
+        PlanSummary = _plan is null ? Tr("Noch nichts analysiert.", "Nothing analysed yet.") : _plan.SummaryText;
         UpdateTargetDescription();
     }
 
