@@ -140,6 +140,22 @@ zypper, apk) und nennt in der Oberfläche den passenden Befehl. Meldet `adb devi
 `no permissions`, wird daraus der Gerätezustand `NoPermissions` – die Geräteseite blendet dann einen
 Hinweis ein, die Komponenten-Seite meldet ein Problem und bietet die Regeln an.
 
+### Grafische Sitzung: X11 und Wayland
+
+Avalonia zeichnet unter Linux über **X11**; in einer **Wayland-Sitzung** übernimmt **XWayland**.
+`LinuxEnvironment.DetectSession` wertet dafür `XDG_SESSION_TYPE`, `WAYLAND_DISPLAY` und `DISPLAY`
+aus – bewusst als reine Funktion, damit sie ohne Umgebung prüfbar bleibt (Wayland hat Vorrang,
+denn dort ist `DISPLAY` nur die Adresse von XWayland). Die Sitzungsart steht auf der Seite
+„Komponenten“ und in der ersten Protokollzeile.
+
+`Program.Main` fragt vor dem Start von Avalonia `LinuxEnvironment.DisplayProblem` ab. Fehlt eine
+nutzbare Anzeige – Wayland ohne XWayland oder gar keine Sitzung –, gibt es statt eines
+Stapelauszugs einen erklärenden Satz samt Installationsbefehl der erkannten Verteilung und den
+Rückgabewert 78 (`EX_CONFIG`). Der `AppBuilder` setzt `X11PlatformOptions` mit
+`UseDBusFilePicker`, `UseDBusMenu`, `EnableIme` und `EnableMultiTouch`: Dateiauswahl und Menüs
+laufen damit über die Portale des Desktops und verhalten sich unter Wayland wie dort erwartet.
+Der Startmenü-Eintrag trägt `StartupWMClass=PixelBackup` passend zur `WM_CLASS` des Fensters.
+
 ## Bereitstellung
 
 Beide Systeme bekommen dieselbe Bauweise: eine eigenständige Einzeldatei
@@ -148,19 +164,33 @@ HarfBuzz mit in die Datei wandern). Unter Windows ist das `PixelBackup.exe`, unt
 endungslose ELF-Datei `PixelBackup` (91 MiB). Beim ersten Start entpackt die .NET-Laufzeit die
 eingebetteten nativen Bibliotheken in einen Zwischenspeicher des Benutzers.
 
-`packaging/linux/package.sh` baut daraus zwei Verteilwege: ein `.deb` (Dateien unter
-`/usr/lib/pixel-backup`, Starter in `/usr/bin`, Startmenü-Eintrag und Symbole, `postinst` frischt
-Desktop- und Symbolzwischenspeicher auf) und ein `.tar.gz` mit einem kleinen Einrichtungsskript für
-den angemeldeten Benutzer. Für Arch liegt ein PKGBUILD bereit, das aus dem Git-Stand baut und
-dabei auch die Tests laufen lässt.
+`packaging/linux/package.sh` baut daraus fünf Verteilwege:
+
+| Format | Werkzeug | Inhalt |
+| --- | --- | --- |
+| `.deb` | `dpkg-deb` | Dateien unter `/usr/lib/pixel-backup`, Starter in `/usr/bin`, Startmenü-Eintrag und Symbole; `postinst` frischt Desktop- und Symbolzwischenspeicher auf |
+| `.rpm` | `rpmbuild` | derselbe `/usr`-Baum; Nachbearbeitung und Debug-Paket sind abgeschaltet, damit die fertige Einzeldatei unverändert bleibt |
+| `.AppImage` | `mksquashfs` | Typ-2-Abbild aus AppImage-Laufzeit und zstd-Dateisystem, läuft ohne Installation |
+| `.flatpak` | `flatpak-builder` | Bündel auf `org.freedesktop.Platform//24.08`, Freigaben für X11/Wayland, USB-Geräte und Benutzerordner |
+| `.tar.gz` | `tar` | portables Archiv mit kleinem Einrichtungsskript für den angemeldeten Benutzer |
+
+`--formats` wählt einzelne Formate aus, `--require-all` bricht ab, sobald eines fehlschlägt (so
+läuft es in der CI). Ohne diese Option wird ein Format, dessen Werkzeug fehlt, übersprungen und am
+Ende benannt. Für Arch liegt zusätzlich ein PKGBUILD bereit, das aus dem Git-Stand baut und dabei
+auch die Tests laufen lässt.
 
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 74 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04, X11)
+`dotnet test` meldet 88 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit
-`dpkg -i` eingespielt, über `/usr/bin/pixel-backup` gestartet und wieder entfernt. Dabei sind drei Fehler aufgefallen und behoben worden:
+`dpkg -i` eingespielt, über `/usr/bin/pixel-backup` gestartet und wieder entfernt; `.rpm`,
+`.AppImage` (entpackt und über `AppRun` gestartet) und `.tar.gz` sind ebenfalls gebaut. Das
+Flatpak-Bündel ließ sich hier nicht erzeugen, weil die Laufzeit von Flathub in dieser Umgebung
+nicht erreichbar ist – die Bauanleitung wurde stattdessen mit `flatpak-builder --show-manifest`
+(1.4.2) geprüft, und die CI baut das Bündel mit `--require-all`. Dabei sind drei Fehler aufgefallen und behoben worden:
 
 * `PlatformToolsInstaller.ParseVersion` las die Protokollfassung „1.0.41“ statt der
   Werkzeugfassung – dadurch hätte die Aktualisierungsprüfung immer ein Update gemeldet.

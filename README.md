@@ -1,6 +1,6 @@
 # Pixel Backup
 
-Eine Windows-Anwendung (C# / .NET 8 / Avalonia) zum vollständigen Sichern und Wiederherstellen
+Eine Anwendung für **Windows und Linux** (C# / .NET 10 / Avalonia) zum vollständigen Sichern und Wiederherstellen
 von **Android-Geräten** – ähnlich wie Samsung Smart Switch, aber herstellerunabhängig und ohne
 zusätzliche App auf dem Telefon.
 
@@ -27,7 +27,7 @@ der Anwendung heraus.
 
 ### Echte Aufnahmen des laufenden Programms
 
-Gebaut mit dem .NET-10-SDK, gestartet unter X11 (Ubuntu 24.04); im Testlauf war **kein Gerät
+Gebaut mit dem .NET-10-SDK, gestartet unter X11 und unter Wayland (Ubuntu 24.04); im Testlauf war **kein Gerät
 angeschlossen** und es lagen **keine Sicherungen** vor – deshalb sind die Listen leer. Unter Windows
 sieht die Anwendung genauso aus, nur mit den Windows-eigenen Bedienelementen.
 
@@ -56,6 +56,16 @@ wird kein USB-Treiber benötigt
 nötig, die Sprache wird erkannt)
 
 ![Components view in English](docs/screenshots/live/06-components-english.png)
+
+**Unter Wayland** – dieselbe Anwendung in einer echten Wayland-Sitzung (Weston), gezeichnet über
+XWayland
+
+![Ansicht „Gerät“ unter Wayland](docs/screenshots/live/07-wayland-xwayland.png)
+
+**Komponenten unter X11** – die Zeile „System“ nennt Verteilung und Art der Sitzung; hier sind adb
+und die Geräteregeln eingerichtet
+
+![Ansicht „Komponenten“ unter X11](docs/screenshots/live/08-komponenten-x11.png)
 
 ### Mit angeschlossenem Gerät
 
@@ -191,6 +201,36 @@ Der Unterschied zwischen den Systemen betrifft nur den Zugang zum Gerät:
   `plugdev` an und lädt die Regeln neu.
 * **macOS** braucht nichts davon.
 
+### X11 und Wayland
+
+Die Oberfläche läuft unter **beiden** Sitzungsarten. Avalonia zeichnet über **X11**; in einer
+**Wayland-Sitzung** (GNOME, KDE Plasma, Sway, Weston …) übernimmt das **XWayland** – auf allen
+gängigen Verteilungen ist es Teil der Standardinstallation. Es ist nichts einzustellen.
+
+* Die Anwendung **erkennt die Sitzungsart** (`XDG_SESSION_TYPE`, `WAYLAND_DISPLAY`, `DISPLAY`) und
+  nennt sie auf der Seite **Komponenten** sowie in der ersten Zeile des Protokolls, zum Beispiel
+  `System: Ubuntu 24.04.4 LTS · Wayland (über XWayland)` oder `… · X11`.
+* Fehlt eine Anzeige, bricht sie nicht mit einem Stapelauszug ab, sondern erklärt den Grund und
+  nennt den passenden Befehl:
+
+  ```
+  $ pixel-backup
+  Pixel Backup: Diese Sitzung läuft unter Wayland, aber XWayland ist nicht erreichbar
+  (DISPLAY ist leer). Nachrüsten mit: sudo apt install xwayland
+  $ echo $?
+  78
+  ```
+
+  Ohne jede grafische Sitzung (etwa über SSH) weist sie auf `ssh -X` hin.
+* Dateiauswahl und Menüs laufen über die **Portale des Desktops** (`UseDBusFilePicker`,
+  `UseDBusMenu`), damit sie sich unter Wayland-Desktops so verhalten wie dort üblich.
+* Der Startmenü-Eintrag setzt `StartupWMClass=PixelBackup` passend zur `WM_CLASS` des Fensters –
+  so ordnen GNOME und KDE das Fenster dem Symbol in der Leiste zu.
+* Das Flatpak-Bündel gibt beide Sockets frei (`--socket=x11`, `--socket=wayland`).
+
+Geprüft wurde das auf Ubuntu 24.04 in einer echten Wayland-Sitzung (Weston 13 mit Xwayland 23.2.6)
+und unter X11 – in beiden Fällen mit denselben Aufnahmen oben.
+
 ## Voraussetzungen
 
 * **Windows 10/11** (Hauptsystem) oder **Linux**; macOS läuft ebenfalls.
@@ -221,8 +261,8 @@ dotnet run --project src/PixelBackup.App
 ```
 
 Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 63 grüne
-Tests, und die Anwendung startet unter X11 (siehe Aufnahmen oben).
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 88 grüne
+Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:
 
@@ -247,27 +287,39 @@ dotnet test
 | Größe (eigenständig) | ~90 MiB, eine Datei | 91 MiB, eine Datei |
 | .NET auf dem Zielrechner | nicht nötig | nicht nötig |
 | Erzeugt mit | `packaging\windows\publish.ps1` | `packaging/linux/install.sh` bzw. `package.sh` |
-| Verteilbare Pakete | die EXE selbst | `.deb` (32 MB) und `.tar.gz` (40 MB), dazu ein PKGBUILD für Arch |
+| Verteilbare Pakete | die EXE selbst | `.deb`, `.rpm`, `.AppImage`, Flatpak-Bündel und `.tar.gz`, dazu ein PKGBUILD für Arch |
 
-Unter Linux gibt es kein Gegenstück zur EXE-Datei mit Doppelklick-Kultur – üblich sind entweder ein
-**Paket der Verteilung** oder ein **portables Archiv**. Beides erzeugt ein Aufruf:
+Unter Linux gibt es kein Gegenstück zur EXE-Datei mit Doppelklick-Kultur – üblich sind ein **Paket
+der Verteilung**, ein **portables Archiv** oder ein in sich geschlossenes Format wie AppImage und
+Flatpak. Ein Aufruf erzeugt alle fünf:
 
 ```bash
-./packaging/linux/package.sh
+./packaging/linux/package.sh                 # alle Formate
+./packaging/linux/package.sh --formats deb,rpm   # nur bestimmte
+./packaging/linux/package.sh --require-all   # bricht ab, wenn eines fehlt (für die CI)
 ```
 
 ```
-dist/pixel-backup_1.0.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …
-dist/pixel-backup-1.0.0-linux-x64.tar.gz     portabel, jede Verteilung
+dist/pixel-backup_1.0.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   32 MB
+dist/pixel-backup-1.0.0-1.x86_64.rpm         Fedora, openSUSE, RHEL …          39 MB
+dist/PixelBackup-1.0.0-x86_64.AppImage       läuft ohne Installation           35 MB
+dist/pixel-backup-1.0.0.flatpak              Flatpak-Bündel
+dist/pixel-backup-1.0.0-linux-x64.tar.gz     portabel, jede Verteilung         40 MB
 ```
+
+Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur dieses Format
+übersprungen** und am Ende benannt – der Rest entsteht trotzdem.
 
 **Einspielen:**
 
 ```bash
-sudo apt install ./dist/pixel-backup_1.0.0_amd64.deb     # Debian-Familie
-tar xzf pixel-backup-1.0.0-linux-x64.tar.gz              # portabel
-./pixel-backup-1.0.0/install.sh                          # trägt es ins Startmenü ein
-cd packaging/arch && makepkg -si                         # Arch, Manjaro
+sudo apt install ./dist/pixel-backup_1.0.0_amd64.deb      # Debian-Familie
+sudo dnf install ./dist/pixel-backup-1.0.0-1.x86_64.rpm   # Fedora, RHEL
+chmod +x dist/PixelBackup-1.0.0-x86_64.AppImage && ./dist/PixelBackup-1.0.0-x86_64.AppImage
+flatpak install --user ./dist/pixel-backup-1.0.0.flatpak  # Flatpak
+tar xzf pixel-backup-1.0.0-linux-x64.tar.gz               # portabel
+./pixel-backup-1.0.0/install.sh                           # trägt es ins Startmenü ein
+cd packaging/arch && makepkg -si                          # Arch, Manjaro
 ```
 
 Das Paket legt ab:
@@ -422,11 +474,13 @@ src/PixelBackup.Core/   Fachlogik ohne UI: adb-Hülle, Kategorien, Sicherung, Wi
                         Komponenten (Plattform-Tools, USB-Treiber)
 src/PixelBackup.App/    Avalonia-Oberfläche (MVVM, ohne zusätzliche MVVM-Abhängigkeit)
 tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto,
-                        Sprachumschaltung, Paketlisten und die Linux-Geräteregeln
-packaging/linux/        Installations- und Paketskripte, Geräteregeln, Startmenü-Eintrag, Symbole
+                        Sprachumschaltung, Paketlisten, Linux-Geräteregeln und Sitzungserkennung
+packaging/linux/        Installations- und Paketskripte (deb, rpm, AppImage, Flatpak, tar.gz),
+                        Geräteregeln, Startmenü-Eintrag, Symbole
+packaging/flatpak/      Flatpak-Bauanleitung und AppStream-Angaben
 packaging/arch/         PKGBUILD für Arch und Manjaro
 packaging/windows/      Veröffentlichungsskript für die eigenständige EXE
-.github/workflows/      Bau und Tests unter Windows und Linux
+.github/workflows/      Bau, Tests, X11-Startprüfung und alle Linux-Pakete
 ```
 
 Details zur Architektur: [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).

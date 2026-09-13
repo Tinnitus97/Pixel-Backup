@@ -171,6 +171,12 @@ public sealed class AppSession : ObservableObject, IDisposable
             $"Sprache: {(Localizer.I.Lang == AppLanguage.De ? "Deutsch" : "Englisch")}, Erscheinungsbild: {ThemeService.DescribeDetected()}",
             $"Language: {(Localizer.I.Lang == AppLanguage.De ? "German" : "English")}, appearance: {ThemeService.DescribeDetected()}"));
 
+        if (OperatingSystem.IsLinux())
+        {
+            // Verteilung und Sitzungsart stehen im Protokoll – das hilft bei Rückfragen.
+            Log.Info($"System: {LinuxEnvironment.Describe()}");
+        }
+
         // Fehlt adb, wird es auf Wunsch gleich eingerichtet.
         if (Settings.AutoInstallAdb && AdbLocator.Locate(Settings.AdbPath) is null)
         {

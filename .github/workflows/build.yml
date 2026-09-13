@@ -29,6 +29,15 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Paketwerkzeuge für Linux einrichten
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          # rpm: .rpm, squashfs-tools: AppImage, flatpak-builder: Flatpak-Bündel
+          sudo apt-get install -y --no-install-recommends rpm squashfs-tools flatpak flatpak-builder
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+
       - name: Abhängigkeiten holen
         run: dotnet restore
 
@@ -41,12 +50,28 @@ jobs:
       - name: Eigenständige Fassung erzeugen
         run: >
           dotnet publish src/PixelBackup.App -c Release -r ${{ matrix.rid }}
-          --self-contained true -p:PublishSingleFile=true -p:DebugType=None
+          --self-contained true -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None
           -o publish/${{ matrix.rid }}
 
-      - name: Linux-Pakete bauen (tar.gz und deb)
+      - name: Start unter X11 prüfen
         if: matrix.os == 'ubuntu-latest'
-        run: ./packaging/linux/package.sh
+        run: |
+          sudo apt-get install -y --no-install-recommends xvfb x11-utils
+          # Startet die fertige Datei in einer X11-Sitzung und wartet auf das Fenster.
+          xvfb-run -a --server-args="-screen 0 1280x900x24" bash -c '
+            publish/linux-x64/PixelBackup &
+            app=$!
+            for _ in $(seq 1 40); do
+              xwininfo -root -children 2>/dev/null | grep -q "Pixel Backup" && break
+              sleep 1
+            done
+            xwininfo -root -children | grep "Pixel Backup"
+            kill $app'
+
+      - name: Linux-Pakete bauen (tar.gz, deb, rpm, AppImage, Flatpak)
+        if: matrix.os == 'ubuntu-latest'
+        run: ./packaging/linux/package.sh --require-all
 
       - name: Ergebnis ablegen
         uses: actions/upload-artifact@v4
