@@ -107,6 +107,82 @@ public static class LinuxEnvironment
     };
 
     /// <summary>
+    /// Systembibliotheken, die Avalonia erst zur Laufzeit lädt. Fehlt eine,
+    /// nennt die Anwendung das Paket der erkannten Verteilung.
+    /// Reihenfolge der Namen: apt, pacman, dnf, zypper, apk.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> KnownLibraries = new(StringComparer.Ordinal)
+    {
+        ["libX11.so.6"] = new[] { "libx11-6", "libx11", "libX11", "libX11-6", "libx11" },
+        ["libXext.so.6"] = new[] { "libxext6", "libxext", "libXext", "libXext6", "libxext" },
+        ["libXi.so.6"] = new[] { "libxi6", "libxi", "libXi", "libXi6", "libxi" },
+        ["libXrandr.so.2"] = new[] { "libxrandr2", "libxrandr", "libXrandr", "libXrandr2", "libxrandr" },
+        ["libXcursor.so.1"] = new[] { "libxcursor1", "libxcursor", "libXcursor", "libXcursor1", "libxcursor" },
+        ["libXfixes.so.3"] = new[] { "libxfixes3", "libxfixes", "libXfixes", "libXfixes3", "libxfixes" },
+        ["libICE.so.6"] = new[] { "libice6", "libice", "libICE", "libICE6", "libice" },
+        ["libSM.so.6"] = new[] { "libsm6", "libsm", "libSM", "libSM6", "libsm" },
+        ["libfontconfig.so.1"] = new[] { "libfontconfig1", "fontconfig", "fontconfig", "fontconfig", "fontconfig" },
+        ["libfreetype.so.6"] = new[] { "libfreetype6", "freetype2", "freetype", "libfreetype6", "freetype" },
+        ["libGL.so.1"] = new[] { "libgl1", "libglvnd", "mesa-libGL", "Mesa-libGL1", "mesa-gl" }
+    };
+
+    /// <summary>Der Befehl, mit dem sich ein Paket nachrüsten lässt.</summary>
+    public static string? InstallCommand(string package) => PackageManager switch
+    {
+        LinuxPackageManager.Apt => $"sudo apt install {package}",
+        LinuxPackageManager.Pacman => $"sudo pacman -S {package}",
+        LinuxPackageManager.Dnf => $"sudo dnf install {package}",
+        LinuxPackageManager.Zypper => $"sudo zypper install {package}",
+        LinuxPackageManager.Apk => $"sudo apk add {package}",
+        _ => null
+    };
+
+    /// <summary>
+    /// Sucht in einer Fehlermeldung nach einer fehlenden Systembibliothek
+    /// („Unable to load shared library 'libX11.so.6'“) und nennt dazu das Paket
+    /// der erkannten Verteilung. Passt nichts, kommt null zurück.
+    /// </summary>
+    public static string? DescribeMissingLibrary(string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            return null;
+        }
+
+        foreach (var (soname, packages) in KnownLibraries)
+        {
+            if (!message.Contains(soname, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var index = PackageManager switch
+            {
+                LinuxPackageManager.Apt => 0,
+                LinuxPackageManager.Pacman => 1,
+                LinuxPackageManager.Dnf => 2,
+                LinuxPackageManager.Zypper => 3,
+                LinuxPackageManager.Apk => 4,
+                _ => -1
+            };
+
+            var hint = Loc.Tr(
+                $"Es fehlt die Systembibliothek {soname}.",
+                $"The system library {soname} is missing.");
+
+            if (index < 0)
+            {
+                return hint;
+            }
+
+            var command = InstallCommand(packages[index]);
+            return command is null ? hint : $"{hint} {Loc.Tr("Nachrüsten mit:", "Install it with:")} {command}";
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Erklärt, warum die Oberfläche nicht starten kann – etwa weil weder X11
     /// noch XWayland erreichbar sind. Ist alles in Ordnung, kommt null zurück.
     /// </summary>

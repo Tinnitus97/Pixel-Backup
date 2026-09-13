@@ -81,6 +81,41 @@ public class DisplaySessionTests : IDisposable
         Assert.Equal(string.Empty, LinuxEnvironment.DescribeSession(LinuxSessionType.Unknown, hasXDisplay: false));
     }
 
+    [Theory]
+    [InlineData("Unable to load shared library 'libX11.so.6' or one of its dependencies.", "libX11.so.6")]
+    [InlineData("System.DllNotFoundException: libXrandr.so.2", "libXrandr.so.2")]
+    [InlineData("dlopen failed: libfontconfig.so.1: cannot open shared object file", "libfontconfig.so.1")]
+    public void DescribeMissingLibrary_NamesTheLibrary(string message, string soname)
+    {
+        var hint = LinuxEnvironment.DescribeMissingLibrary(message);
+
+        Assert.NotNull(hint);
+        Assert.Contains(soname, hint);
+    }
+
+    [Fact]
+    public void DescribeMissingLibrary_IgnoresOtherFailures()
+    {
+        Assert.Null(LinuxEnvironment.DescribeMissingLibrary(null));
+        Assert.Null(LinuxEnvironment.DescribeMissingLibrary(string.Empty));
+        Assert.Null(LinuxEnvironment.DescribeMissingLibrary("Die Sicherung ist fehlgeschlagen."));
+    }
+
+    [Fact]
+    public void DescribeMissingLibrary_AddsTheInstallCommandOfTheDistribution()
+    {
+        var hint = LinuxEnvironment.DescribeMissingLibrary("Unable to load shared library 'libX11.so.6'");
+        var command = LinuxEnvironment.InstallCommand("libx11-6");
+
+        Assert.NotNull(hint);
+
+        // Ohne erkannte Paketverwaltung (etwa unter Windows) bleibt es beim Namen.
+        if (command is not null)
+        {
+            Assert.Contains("sudo", hint, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void DescribeSession_FollowsTheLanguage()
     {

@@ -156,6 +156,14 @@ Rückgabewert 78 (`EX_CONFIG`). Der `AppBuilder` setzt `X11PlatformOptions` mit
 laufen damit über die Portale des Desktops und verhalten sich unter Wayland wie dort erwartet.
 Der Startmenü-Eintrag trägt `StartupWMClass=PixelBackup` passend zur `WM_CLASS` des Fensters.
 
+Avalonia lädt den X11-Satz (`libX11`, `libXext`, `libXi`, `libXrandr`, `libXcursor`, `libXfixes`,
+`libICE`, `libSM`, dazu wahlweise `libGL`) erst zur Laufzeit per `dlopen`. Ein Paketbauwerkzeug
+sieht diese Abhängigkeiten deshalb nicht im ELF-Kopf; `.deb`, `.rpm` und PKGBUILD nennen sie
+ausdrücklich (im rpm als Soname-Abhängigkeiten, weil die Paketnamen je nach Verteilung anders
+lauten). Fehlt zur Laufzeit doch eine, ersetzt `LinuxEnvironment.DescribeMissingLibrary` die
+seitenlange Suchliste von .NET durch einen Satz mit Bibliotheksname und Installationsbefehl der
+erkannten Verteilung.
+
 ## Bereitstellung
 
 Beide Systeme bekommen dieselbe Bauweise: eine eigenständige Einzeldatei
@@ -182,7 +190,7 @@ auch die Tests laufen lässt.
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 88 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+`dotnet test` meldet 93 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit

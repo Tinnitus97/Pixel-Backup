@@ -247,6 +247,17 @@ und unter X11 – in beiden Fällen mit denselben Aufnahmen oben.
   `android-tools`); der Pfad lässt sich in den Einstellungen jederzeit überschreiben.
 * **Gerätezugang** – unter Windows bei Bedarf der Google-USB-Treiber, unter Linux die udev-Regeln.
   Die Komponenten-Seite erkennt beides und richtet es ein.
+* **Systembibliotheken unter Linux** – auf einem gewöhnlichen Desktop ist alles längst da; die
+  Pakete (`.deb`, `.rpm`, PKGBUILD) fordern sie ohnehin an. Gebraucht werden `libX11`, `libXext`,
+  `libXi`, `libXrandr`, `libXcursor`, `libXfixes`, `libICE`, `libSM`, `fontconfig`, `freetype`,
+  `icu` und `zlib`; `libGL` ist freiwillig (ohne zeichnet die Anwendung in Software). Fehlt eine,
+  nennt die Anwendung beim Start Namen **und** Installationsbefehl der erkannten Verteilung:
+
+  ```
+  $ pixel-backup
+  Pixel Backup: Es fehlt die Systembibliothek libX11.so.6. Nachrüsten mit: sudo apt install libx11-6
+  Grafische Sitzung: X11
+  ```
 * Am Gerät: **Entwickleroptionen** aktivieren (siebenmal auf die Build-Nummer tippen) und
   **USB-Debugging** einschalten. Beim ersten Anschließen die Abfrage am Telefon bestätigen.
 
@@ -261,7 +272,7 @@ dotnet run --project src/PixelBackup.App
 ```
 
 Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 88 grüne
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 93 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:

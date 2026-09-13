@@ -11,10 +11,14 @@ pkgdesc="Sicherung und Wiederherstellung für Android-Geräte über adb"
 arch=('x86_64' 'aarch64')
 url="https://github.com/Tinnitus97/Pixel-Backup"
 license=('custom')
-depends=('fontconfig' 'libx11' 'icu' 'zlib' 'gcc-libs')
+# Avalonia lädt den X11-Satz erst zur Laufzeit; unter Wayland zeichnet es über XWayland.
+depends=('fontconfig' 'freetype2' 'libx11' 'libxext' 'libxi' 'libxrandr' 'libxcursor'
+         'libxfixes' 'libice' 'libsm' 'icu' 'zlib' 'gcc-libs')
 makedepends=('dotnet-sdk>=10.0' 'git')
 optdepends=('android-tools: adb aus den Paketquellen statt aus dem Netz'
-            'android-udev: fertige Geräteregeln der Verteilung')
+            'android-udev: fertige Geräteregeln der Verteilung'
+            'libglvnd: zeichnet über OpenGL statt in Software'
+            'xorg-xwayland: für Wayland-Sitzungen')
 source=("git+$url.git#tag=v$pkgver")
 sha256sums=('SKIP')
 

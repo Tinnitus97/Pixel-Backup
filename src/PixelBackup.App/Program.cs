@@ -31,13 +31,20 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Pixel Backup: {ex.Message}");
+            // Fehlt eine der erst zur Laufzeit geladenen X11-Bibliotheken, steht ihr
+            // Name in der Meldung. Dann statt der seitenlangen Suchliste von .NET
+            // einen Satz mit dem passenden Paket der Verteilung ausgeben.
+            var missing = OperatingSystem.IsLinux()
+                ? LinuxEnvironment.DescribeMissingLibrary(ex.ToString())
+                : null;
+
+            Console.Error.WriteLine($"Pixel Backup: {missing ?? ex.Message}");
 
             if (OperatingSystem.IsLinux())
             {
                 Console.Error.WriteLine(Loc.Tr(
-                    $"Grafische Sitzung: {LinuxEnvironment.SessionText}. Avalonia zeichnet unter Wayland über XWayland.",
-                    $"Graphical session: {LinuxEnvironment.SessionText}. Avalonia draws through XWayland on Wayland."));
+                    $"Grafische Sitzung: {LinuxEnvironment.SessionText}",
+                    $"Graphical session: {LinuxEnvironment.SessionText}"));
             }
 
             return 1;

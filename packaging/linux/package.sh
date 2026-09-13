@@ -35,9 +35,10 @@ done
 
 wants() { printf '%s' ",$FORMATS," | grep -q ",$1,"; }
 
+# RPM_BITS steht in den Soname-Abhaengigkeiten, z. B. libX11.so.6()(64bit).
 case "$(uname -m)" in
-  x86_64|amd64)  RID="linux-x64";   DEB_ARCH="amd64"; RPM_ARCH="x86_64";  APPIMAGE_ARCH="x86_64" ;;
-  aarch64|arm64) RID="linux-arm64"; DEB_ARCH="arm64"; RPM_ARCH="aarch64"; APPIMAGE_ARCH="aarch64" ;;
+  x86_64|amd64)  RID="linux-x64";   DEB_ARCH="amd64"; RPM_ARCH="x86_64";  APPIMAGE_ARCH="x86_64";  RPM_BITS="64bit" ;;
+  aarch64|arm64) RID="linux-arm64"; DEB_ARCH="arm64"; RPM_ARCH="aarch64"; APPIMAGE_ARCH="aarch64"; RPM_BITS="64bit" ;;
   *) echo "Nicht unterstützte Architektur: $(uname -m)" >&2; exit 1 ;;
 esac
 
@@ -154,9 +155,9 @@ Priority: optional
 Architecture: $DEB_ARCH
 Maintainer: Pixel Backup <noreply@example.invalid>
 Installed-Size: $(du -ks "$root/usr" | cut -f1)
-Depends: libc6, libgcc-s1, libstdc++6, zlib1g, libfontconfig1, libx11-6, libice6, libsm6, libicu76 | libicu74 | libicu72 | libicu71 | libicu70 | libicu67
-Recommends: android-sdk-platform-tools-common
-Suggests: adb
+Depends: libc6, libgcc-s1, libstdc++6, zlib1g, libfontconfig1, libfreetype6, libx11-6, libxext6, libxi6, libxrandr2, libxcursor1, libxfixes3, libice6, libsm6, libicu76 | libicu74 | libicu72 | libicu71 | libicu70 | libicu67
+Recommends: libgl1, android-sdk-platform-tools-common
+Suggests: adb, xwayland
 Homepage: https://github.com/Tinnitus97/Pixel-Backup
 Description: Sicherung und Wiederherstellung fuer Android-Geraete
  Pixel Backup sichert Fotos, Videos, Musik, Dokumente, Apps sowie Kontakte,
@@ -212,9 +213,27 @@ License:        Proprietary
 URL:            https://github.com/Tinnitus97/Pixel-Backup
 BuildArch:      $RPM_ARCH
 
+# Die Anwendung laedt diese Bibliotheken erst zur Laufzeit (dlopen), deshalb
+# findet rpm sie nicht selbst. Sonamen statt Paketnamen: die heissen je nach
+# Verteilung anders, die Sonamen nicht.
 Requires:       fontconfig
 Requires:       zlib
+Requires:       libX11.so.6()(${RPM_BITS})
+Requires:       libXext.so.6()(${RPM_BITS})
+Requires:       libXi.so.6()(${RPM_BITS})
+Requires:       libXrandr.so.2()(${RPM_BITS})
+Requires:       libXcursor.so.1()(${RPM_BITS})
+Requires:       libXfixes.so.3()(${RPM_BITS})
+Requires:       libICE.so.6()(${RPM_BITS})
+Requires:       libSM.so.6()(${RPM_BITS})
+Requires:       libfreetype.so.6()(${RPM_BITS})
+# ICU heisst ueberall anders und traegt die Fassung im Namen; .NET braucht es.
+Requires:       (libicu or libicu76 or libicu75 or libicu74 or libicu73 or libicu72 or libicu70)
+# Ohne OpenGL zeichnet die Anwendung in Software weiter.
+Recommends:     libGL.so.1()(${RPM_BITS})
 Recommends:     android-tools
+# In einer Wayland-Sitzung zeichnet Avalonia ueber XWayland.
+Suggests:       xorg-x11-server-Xwayland
 
 %description
 Pixel Backup sichert Fotos, Videos, Musik, Dokumente, Apps sowie Kontakte,
