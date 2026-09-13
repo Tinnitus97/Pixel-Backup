@@ -214,6 +214,16 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+    public bool CheckUpdatesOnStart
+    {
+        get => _session.Settings.CheckUpdatesOnStart;
+        set
+        {
+            _session.Settings.CheckUpdatesOnStart = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool AutoInstallAdb
     {
         get => _session.Settings.AutoInstallAdb;
@@ -369,6 +379,19 @@ public sealed class SettingsViewModel : ViewModelBase
     public string LabelLanguage => Tr("Sprache:", "Language:");
 
     public string LabelTheme => Tr("Erscheinungsbild:", "Appearance:");
+
+    public string LabelCheckUpdates => Tr(
+        "Beim Start nach einer neueren Fassung suchen",
+        "Look for a newer version at startup");
+
+    /// <summary>Eigene Fassung und Einbauart – dieselbe Angabe wie auf der Seite „Komponenten“.</summary>
+    public string VersionText => InstallationInfo.Describe();
+
+    public string HintUpdates => Tr(
+        "Geprüft wird eine einfache Datei aus der jüngsten Veröffentlichung (update.json). " +
+        "Eingespielt wird nichts ohne Rückfrage – das erledigt die Seite „Komponenten“.",
+        "The check reads a plain file from the latest release (update.json). Nothing is installed " +
+        "without asking – that happens on the \"Components\" page.");
 
     public string LabelSave => Tr("Einstellungen speichern", "Save settings");
 

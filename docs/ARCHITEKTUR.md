@@ -187,10 +187,43 @@ läuft es in der CI). Ohne diese Option wird ein Format, dessen Werkzeug fehlt, 
 Ende benannt. Für Arch liegt zusätzlich ein PKGBUILD bereit, das aus dem Git-Stand baut und dabei
 auch die Tests laufen lässt.
 
+## Versionscheck und Updater
+
+Drei Bausteine, alle im Kern und damit ohne Oberfläche prüfbar:
+
+* **`InstallationInfo`** beantwortet zwei Fragen: welche Fassung läuft (aus
+  `AssemblyInformationalVersion`) und wie sie eingespielt wurde. Die Entscheidung steckt in der
+  reinen Funktion `Detect(executablePath, APPIMAGE, FLATPAK_ID, /.flatpak-info, isWindows,
+  isLinux, packageOwner)`; erst der Rückruf `packageOwner` fragt tatsächlich `dpkg -S` und
+  `rpm -qf`. `ArchOf` übersetzt die Architektur in die Schreibweise des jeweiligen Formats
+  (amd64, x86_64, x64 …).
+* **`UpdateService`** holt `update.json` (jüngste Veröffentlichung, Rückfallweg: Standardzweig),
+  liest sie, vergleicht die Nummern über `System.Version` und wählt mit `SelectPackage` die Datei,
+  die zu Einbauart und Architektur passt. Der Download läuft mit Fortschrittsmeldung und
+  SHA-256-Vergleich; eine Datei, deren Summe nicht stimmt, wird gelöscht.
+* **`UpdateInstaller`** spielt ein. EXE, AppImage und portable Fassung werden ausgetauscht – eine
+  laufende Datei kann sich nicht selbst überschreiben, deshalb schreibt der Installer ein kleines
+  Skript (`.cmd` bzw. `.sh`), das auf das Ende des Vorgangs wartet, die Datei ersetzt und neu
+  startet; die Anwendung beendet sich dafür über das Ereignis `ExitRequested`. Für `.deb`, `.rpm`
+  und Flatpak baut `BuildPackageCommand` den Aufruf der Paketverwaltung (`pkexec apt-get`,
+  `pkexec dnf`, `zypper`, `flatpak install --user --bundle`; im Flatpak-Behälter davor
+  `flatpak-spawn --host`).
+
+Aus dem portablen Archiv wird ausschließlich der Eintrag `PixelBackup` übernommen
+(`IsProgramEntry`) – ein manipuliertes Archiv kann so nichts anderes ablegen.
+
+In der Oberfläche ist das Ganze der dritte Eintrag auf der Seite „Komponenten“ und nutzt dieselbe
+`ComponentStatus`-Darstellung wie adb und die Geräteregeln.
+
+`.github/workflows/release.yml` erzeugt die Gegenseite: Es baut auf einem Windows- und einem
+Linux-Läufer alle sieben Dateien, bildet `SHA256SUMS`, erzeugt mit
+`packaging/make-update-manifest.sh` die Datei `update.json` und hängt alles an die
+Veröffentlichung.
+
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 93 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+`dotnet test` meldet 154 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit
@@ -198,7 +231,12 @@ Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb`
 `.AppImage` (entpackt und über `AppRun` gestartet) und `.tar.gz` sind ebenfalls gebaut. Das
 Flatpak-Bündel ließ sich hier nicht erzeugen, weil die Laufzeit von Flathub in dieser Umgebung
 nicht erreichbar ist – die Bauanleitung wurde stattdessen mit `flatpak-builder --show-manifest`
-(1.4.2) geprüft, und die CI baut das Bündel mit `--require-all`. Dabei sind drei Fehler aufgefallen und behoben worden:
+(1.4.2) geprüft, und die CI baut das Bündel mit `--require-all`.
+
+Auch der Updater ist echt gelaufen: über einen lokalen Webserver wurde eine Fassung 0.9.1
+angeboten, die Anwendung hat sie erkannt („Fassung 0.9.1 ist verfügbar (installiert: 0.9.0)“),
+nach Rückfrage geladen, die Prüfsumme verglichen, die Programmdatei aus dem Archiv geholt,
+sich beendet, die Datei ausgetauscht (neue Inode-Nummer) und sich neu gestartet. Dabei sind drei Fehler aufgefallen und behoben worden:
 
 * `PlatformToolsInstaller.ParseVersion` las die Protokollfassung „1.0.41“ statt der
   Werkzeugfassung – dadurch hätte die Aktualisierungsprüfung immer ein Update gemeldet.

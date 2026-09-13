@@ -99,6 +99,11 @@
 
           <CheckBox Content="{Binding LabelCheckComponents}" IsChecked="{Binding CheckComponentsOnStart, Mode=TwoWay}" />
           <CheckBox Content="{Binding LabelAutoInstallAdb}" IsChecked="{Binding AutoInstallAdb, Mode=TwoWay}" />
+          <CheckBox Content="{Binding LabelCheckUpdates}" IsChecked="{Binding CheckUpdatesOnStart, Mode=TwoWay}" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="{Binding VersionText}" FontSize="12" />
+          </StackPanel>
+          <TextBlock Text="{Binding HintUpdates}" Classes="hint" FontSize="12" TextWrapping="Wrap" />
 
           <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
             <Button Content="{Binding LabelSave}" Command="{Binding SaveCommand}" Classes="accent" />

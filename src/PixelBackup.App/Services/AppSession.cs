@@ -166,7 +166,9 @@ public sealed class AppSession : ObservableObject, IDisposable
 
     public async Task InitializeAsync()
     {
-        Log.Info(Loc.Tr("Pixel Backup gestartet.", "Pixel Backup started."));
+        Log.Info(Loc.Tr(
+            $"Pixel Backup gestartet – {InstallationInfo.Describe()}.",
+            $"Pixel Backup started – {InstallationInfo.Describe()}."));
         Log.Info(Loc.Tr(
             $"Sprache: {(Localizer.I.Lang == AppLanguage.De ? "Deutsch" : "Englisch")}, Erscheinungsbild: {ThemeService.DescribeDetected()}",
             $"Language: {(Localizer.I.Lang == AppLanguage.De ? "German" : "English")}, appearance: {ThemeService.DescribeDetected()}"));
@@ -187,7 +189,12 @@ public sealed class AppSession : ObservableObject, IDisposable
 
         if (Settings.CheckComponentsOnStart)
         {
-            _ = Components.RefreshAsync();
+            _ = Components.RefreshAsync(includeUpdate: Settings.CheckUpdatesOnStart);
+        }
+        else if (Settings.CheckUpdatesOnStart)
+        {
+            // Auch ohne Komponentenprüfung soll der Versionscheck laufen.
+            _ = Components.CheckForUpdateAsync();
         }
     }
 

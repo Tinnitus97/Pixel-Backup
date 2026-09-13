@@ -70,6 +70,41 @@
           </Grid>
         </Border>
 
+        <!-- Pixel Backup selbst -->
+        <Border Classes="card">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Application.Glyph}"
+                       FontSize="26"
+                       Margin="0,0,16,0"
+                       VerticalAlignment="Center" />
+
+            <StackPanel Grid.Column="1" Spacing="3">
+              <TextBlock Text="{Binding Application.Name}" FontWeight="SemiBold" FontSize="15" />
+              <TextBlock Text="{Binding Application.StateText}" Classes="hint" />
+              <TextBlock Text="{Binding Application.Message}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0">
+                <TextBlock Text="{Binding LabelVersion}" Classes="hint" FontSize="12" />
+                <TextBlock Text="{Binding Application.VersionText}" FontSize="12" />
+                <TextBlock Text="{Binding LabelInstallation}" Classes="hint" FontSize="12" />
+                <TextBlock Text="{Binding InstallationKindText}" FontSize="12" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
+              <Button Content="{Binding LabelInstallUpdate}"
+                      Command="{Binding InstallUpdateCommand}"
+                      IsVisible="{Binding HasUpdate}"
+                      Classes="accent"
+                      MinWidth="200" />
+              <Button Content="{Binding LabelReleases}"
+                      Command="{Binding OpenReleasesCommand}"
+                      IsVisible="{Binding HasUpdate}"
+                      MinWidth="200" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
         <Border Classes="card">
           <StackPanel Spacing="6">
             <TextBlock Text="{Binding SummaryText}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -86,6 +121,7 @@
                        TextWrapping="Wrap" />
 
             <TextBlock Text="{Binding SourceHint}" Classes="hint" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding UpdateSourceHint}" Classes="hint" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 

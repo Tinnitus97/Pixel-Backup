@@ -18,9 +18,13 @@ public sealed class ComponentService : ObservableObject
     private readonly PlatformToolsInstaller _installer;
     private readonly UsbDriverService _usbDriver;
     private readonly LinuxDeviceAccessService _linuxAccess;
+    private readonly UpdateService _updater;
+    private readonly UpdateInstaller _updateInstaller;
 
     private ComponentStatus _adb;
     private ComponentStatus _usb;
+    private ComponentStatus _app;
+    private UpdateCheckResult? _updateCheck;
     private SdkPackage? _adbPackage;
     private SdkPackage? _usbPackage;
     private bool _isBusy;
@@ -35,8 +39,12 @@ public sealed class ComponentService : ObservableObject
         _usbDriver = new UsbDriverService(session.Log);
         _linuxAccess = new LinuxDeviceAccessService(session.Log);
 
+        _updater = new UpdateService(session.Log);
+        _updateInstaller = new UpdateInstaller(session.Log);
+
         _adb = new ComponentStatus { Name = Loc.Tr("Android-Plattform-Tools (adb)", "Android platform tools (adb)") };
         _usb = new ComponentStatus { Name = DeviceAccessName };
+        _app = NewAppStatus();
     }
 
     public ComponentStatus Adb
@@ -64,7 +72,36 @@ public sealed class ComponentService : ObservableObject
         }
     }
 
-    public bool AllHealthy => Adb.IsHealthy && DeviceAccess.IsHealthy;
+    /// <summary>Pixel Backup selbst: eigene Fassung und angebotene Fassung.</summary>
+    public ComponentStatus Application
+    {
+        get => _app;
+        private set
+        {
+            _app = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AllHealthy));
+        }
+    }
+
+    /// <summary>Das Ergebnis der letzten Abfrage – enthält die Datei zum Einspielen.</summary>
+    public UpdateCheckResult? UpdateCheck => _updateCheck;
+
+    public bool AllHealthy => Adb.IsHealthy && DeviceAccess.IsHealthy && Application.IsHealthy;
+
+    /// <summary>Meldet die Anwendung, dass sie sich für den Austausch beenden soll.</summary>
+    public event Action? ExitRequested;
+
+    private ComponentStatus NewAppStatus() => new()
+    {
+        Name = Loc.Tr("Pixel Backup", "Pixel Backup"),
+        InstalledVersion = InstallationInfo.CurrentVersion,
+        State = ComponentState.Unknown,
+        Location = InstallationInfo.ExecutablePath,
+        Message = Loc.Tr(
+            $"Eingespielt als {InstallationInfo.KindText(InstallationInfo.Kind)}.",
+            $"Installed as {InstallationInfo.KindText(InstallationInfo.Kind)}.")
+    };
 
     /// <summary>Name der plattformabhängigen Zugangskomponente.</summary>
     public static string DeviceAccessName => OperatingSystem.IsWindows()
@@ -104,8 +141,11 @@ public sealed class ComponentService : ObservableObject
 
     public DateTimeOffset LastCheck => _lastCheck;
 
-    /// <summary>Prüft beide Komponenten; <paramref name="online"/> steuert den Abgleich mit Google.</summary>
-    public async Task RefreshAsync(bool online = true, CancellationToken ct = default)
+    /// <summary>
+    /// Prüft die Komponenten; <paramref name="online"/> steuert den Abgleich mit
+    /// Google, <paramref name="includeUpdate"/> den Versionscheck der Anwendung.
+    /// </summary>
+    public async Task RefreshAsync(bool online = true, CancellationToken ct = default, bool includeUpdate = true)
     {
         if (IsBusy)
         {
@@ -140,6 +180,11 @@ public sealed class ComponentService : ObservableObject
 
             DeviceAccess = accessStatus;
 
+            if (online && includeUpdate)
+            {
+                await CheckUpdateCoreAsync(ct).ConfigureAwait(false);
+            }
+
             _lastCheck = DateTimeOffset.Now;
             _session.Log.Info(Loc.Tr(
                 $"Komponenten geprüft – adb: {adbStatus.StateText}, {DeviceAccessName}: {accessStatus.StateText}.",
@@ -151,6 +196,148 @@ public sealed class ComponentService : ObservableObject
         catch (Exception ex)
         {
             _session.Log.Error(Loc.Tr("Komponenten konnten nicht geprüft werden", "Components could not be checked"), ex);
+        }
+        finally
+        {
+            IsBusy = false;
+            BusyText = string.Empty;
+            Percent = 0;
+        }
+    }
+
+    /// <summary>Fragt nach, ob es eine neuere Fassung von Pixel Backup gibt.</summary>
+    public async Task CheckForUpdateAsync(CancellationToken ct = default)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        BusyText = Loc.Tr("Fassung wird geprüft …", "Checking version …");
+
+        try
+        {
+            await CheckUpdateCoreAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            IsBusy = false;
+            BusyText = string.Empty;
+        }
+    }
+
+    /// <summary>Die eigentliche Abfrage – ohne eigene Sperre, damit sie auch im Sammel-Check läuft.</summary>
+    private async Task CheckUpdateCoreAsync(CancellationToken ct)
+    {
+        var status = NewAppStatus();
+
+        try
+        {
+            var result = await _updater
+                .CheckAsync(_session.Settings.UpdateManifestUrl, ct)
+                .ConfigureAwait(false);
+
+            _updateCheck = result;
+            status.Message = result.Describe();
+
+            if (result.Error is not null)
+            {
+                // Ohne Netz ist das kein Fehler der Anwendung – der Stand bleibt offen.
+                status.State = ComponentState.Unknown;
+            }
+            else if (result.UpdateAvailable)
+            {
+                status.State = ComponentState.UpdateAvailable;
+                status.LatestVersion = result.OnlineVersion;
+            }
+            else
+            {
+                status.State = ComponentState.UpToDate;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            status.State = ComponentState.Unknown;
+            status.Message = ex.Message;
+        }
+
+        Application = status;
+    }
+
+    /// <summary>
+    /// Lädt die angebotene Fassung und spielt sie ein. Bei EXE, AppImage und
+    /// portabler Fassung beendet sich die Anwendung danach selbst.
+    /// </summary>
+    public async Task<(bool Success, string Message)> InstallUpdateAsync(CancellationToken ct = default)
+    {
+        var check = _updateCheck;
+
+        if (check is null || !check.UpdateAvailable)
+        {
+            return (false, Loc.Tr("Es liegt keine neuere Fassung vor.", "There is no newer version."));
+        }
+
+        if (check.Package is null)
+        {
+            return (false, Loc.Tr(
+                $"Für diese Einbauart gibt es keine Datei – bitte von Hand holen: {UpdateService.ReleasesPageUrl}",
+                $"There is no file for this installation kind – please fetch it manually: {UpdateService.ReleasesPageUrl}"));
+        }
+
+        if (IsBusy)
+        {
+            return (false, Loc.Tr("Es läuft bereits ein Vorgang.", "Another operation is already running."));
+        }
+
+        IsBusy = true;
+        Percent = 0;
+        BusyText = Loc.Tr($"Fassung {check.OnlineVersion} wird geladen …", $"Downloading version {check.OnlineVersion} …");
+
+        try
+        {
+            var progress = new Progress<DownloadProgress>(p =>
+            {
+                Percent = p.Percent;
+                BusyText = p.BytesTotal > 0 ? $"{p.Phase} … {p.Percent:F0} %" : p.Phase;
+            });
+
+            var download = await _updater.DownloadAsync(check.Package, progress, ct).ConfigureAwait(false);
+            if (!download.Success)
+            {
+                return (false, download.Error ?? Loc.Tr("Der Download ist fehlgeschlagen.", "The download failed."));
+            }
+
+            BusyText = Loc.Tr("Die neue Fassung wird eingespielt …", "Installing the new version …");
+
+            var applied = await _updateInstaller
+                .ApplyAsync(check.Package, download.File, ct)
+                .ConfigureAwait(false);
+
+            if (applied.ShouldExit)
+            {
+                // Der Austausch läuft erst, wenn diese Anwendung beendet ist.
+                ExitRequested?.Invoke();
+            }
+            else if (applied.Success)
+            {
+                await CheckUpdateCoreAsync(ct).ConfigureAwait(false);
+            }
+
+            return (applied.Success, applied.Message);
+        }
+        catch (OperationCanceledException)
+        {
+            return (false, Loc.Tr("Abgebrochen.", "Cancelled."));
+        }
+        catch (Exception ex)
+        {
+            _session.Log.Error(Loc.Tr("Die neue Fassung konnte nicht eingespielt werden", "The new version could not be installed"), ex);
+            return (false, ex.Message);
         }
         finally
         {
@@ -346,6 +533,7 @@ public sealed class ComponentService : ObservableObject
     {
         OnPropertyChanged(nameof(Adb));
         OnPropertyChanged(nameof(DeviceAccess));
+        OnPropertyChanged(nameof(Application));
         OnPropertyChanged(nameof(AllHealthy));
     }
 }

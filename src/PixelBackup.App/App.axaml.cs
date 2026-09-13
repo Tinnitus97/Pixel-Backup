@@ -25,6 +25,10 @@ public partial class App : Application
             desktop.MainWindow = new MainWindow { DataContext = viewModel };
             desktop.ShutdownRequested += (_, _) => session.Shutdown();
 
+            // Der Austausch der Programmdatei läuft erst, wenn diese Anwendung beendet ist.
+            session.Components.ExitRequested += () =>
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => desktop.Shutdown());
+
             // Erst nach dem Erzeugen des Fensters starten, damit Meldungen sichtbar sind.
             _ = viewModel.InitializeAsync();
         }

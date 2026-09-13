@@ -71,6 +71,29 @@ public static class DialogService
     public static async Task<bool> ConfirmAsync(string title, string message) =>
         await MessageDialog.ShowAsync(MainWindow, title, message, confirm: true);
 
+    /// <summary>Öffnet eine Adresse im Standardbrowser.</summary>
+    public static void OpenUrl(string url)
+    {
+        try
+        {
+            if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception)
+        {
+            // Ohne Browser (z. B. auf einem Server) passiert schlicht nichts.
+        }
+    }
+
     /// <summary>Öffnet einen Ordner oder eine Datei im Dateimanager des Systems.</summary>
     public static void OpenInFileManager(string path)
     {

@@ -27,6 +27,12 @@ public sealed class ComponentsViewModel : ViewModelBase
             InstallDeviceAccessAsync,
             () => Components.IsIdle && ComponentService.CanSetUpDeviceAccess,
             ReportError);
+        InstallUpdateCommand = new AsyncRelayCommand(
+            InstallUpdateAsync,
+            () => Components.IsIdle && Components.Application.CanUpdate,
+            ReportError);
+        OpenReleasesCommand = new RelayCommand(() => DialogService.OpenUrl(
+            Components.UpdateCheck?.Notes ?? UpdateService.ReleasesPageUrl));
 
         Components.PropertyChanged += (_, _) =>
         {
@@ -56,9 +62,19 @@ public sealed class ComponentsViewModel : ViewModelBase
 
     public AsyncRelayCommand InstallDeviceAccessCommand { get; }
 
+    public AsyncRelayCommand InstallUpdateCommand { get; }
+
+    public RelayCommand OpenReleasesCommand { get; }
+
     public ComponentStatus Adb => Components.Adb;
 
     public ComponentStatus DeviceAccess => Components.DeviceAccess;
+
+    /// <summary>Pixel Backup selbst – Fassung und angebotene Aktualisierung.</summary>
+    public ComponentStatus Application => Components.Application;
+
+    /// <summary>Woher die laufende Fassung stammt (EXE, .deb, AppImage …).</summary>
+    public string InstallationKindText => InstallationInfo.KindText(InstallationInfo.Kind);
 
     /// <summary>Gibt es auf diesem System überhaupt etwas einzurichten?</summary>
     public bool CanSetUpDeviceAccess => ComponentService.CanSetUpDeviceAccess;
@@ -69,10 +85,24 @@ public sealed class ComponentsViewModel : ViewModelBase
         ? Tr("noch nicht geprüft", "not checked yet")
         : Tr($"zuletzt geprüft: {Components.LastCheck:g}", $"last checked: {Components.LastCheck:g}");
 
-    public string SummaryText => Components.AllHealthy
-        ? Tr("Alles eingerichtet – Pixel Backup ist einsatzbereit.", "Everything is in place – Pixel Backup is ready.")
-        : Tr("Es fehlt noch etwas. Die Schaltflächen daneben richten es ein.",
-             "Something is still missing. The buttons next to each entry will set it up.");
+    public string SummaryText
+    {
+        get
+        {
+            if (!Adb.IsHealthy || !DeviceAccess.IsHealthy)
+            {
+                return Tr("Es fehlt noch etwas. Die Schaltflächen daneben richten es ein.",
+                          "Something is still missing. The buttons next to each entry will set it up.");
+            }
+
+            // Eine neuere Fassung ist kein Mangel, aber eine Meldung wert.
+            return HasUpdate
+                ? Tr($"Alles eingerichtet – für Pixel Backup selbst gibt es Fassung {Application.LatestVersion}.",
+                     $"Everything is in place – version {Application.LatestVersion} of Pixel Backup is available.")
+                : Tr("Alles eingerichtet – Pixel Backup ist einsatzbereit.",
+                     "Everything is in place – Pixel Backup is ready.");
+        }
+    }
 
     public override async Task ActivateAsync()
     {
@@ -130,11 +160,52 @@ public sealed class ComponentsViewModel : ViewModelBase
             message);
     }
 
+    private async Task InstallUpdateAsync()
+    {
+        var check = Components.UpdateCheck;
+        if (check is null)
+        {
+            return;
+        }
+
+        var question = check.Kind switch
+        {
+            InstallationKind.Deb or InstallationKind.Rpm => Tr(
+                $"Fassung {check.OnlineVersion} wird geladen und über die Paketverwaltung eingespielt. " +
+                "Dafür werden einmalig Administratorrechte abgefragt.",
+                $"Version {check.OnlineVersion} will be downloaded and installed through the package manager. " +
+                "This asks for administrator rights once."),
+            InstallationKind.Flatpak => Tr(
+                $"Fassung {check.OnlineVersion} wird als Flatpak-Bündel geladen und für dich eingespielt.",
+                $"Version {check.OnlineVersion} will be downloaded as a Flatpak bundle and installed for you."),
+            _ => Tr(
+                $"Fassung {check.OnlineVersion} wird geladen, die Prüfsumme verglichen und die Programmdatei " +
+                "ausgetauscht. Pixel Backup beendet sich dafür kurz und startet neu.",
+                $"Version {check.OnlineVersion} will be downloaded, its checksum verified and the program file " +
+                "replaced. Pixel Backup will exit briefly and restart.")
+        };
+
+        var confirmed = await DialogService.ConfirmAsync(LabelInstallUpdate, question);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var (success, message) = await Components.InstallUpdateAsync().ConfigureAwait(true);
+        StatusMessage = message;
+
+        if (!success)
+        {
+            await DialogService.ShowInfoAsync(Tr("Nicht eingespielt", "Not installed"), message);
+        }
+    }
+
     private void RaiseCommandStates()
     {
         RefreshCommand.RaiseCanExecuteChanged();
         InstallAdbCommand.RaiseCanExecuteChanged();
         InstallDeviceAccessCommand.RaiseCanExecuteChanged();
+        InstallUpdateCommand.RaiseCanExecuteChanged();
     }
 
     private void ReportError(Exception ex)
@@ -229,7 +300,23 @@ public sealed class ComponentsViewModel : ViewModelBase
 
     public string LabelVersion => Tr("Fassung", "Version");
 
+    public string LabelInstallUpdate => Tr("Jetzt aktualisieren", "Update now");
+
+    public string LabelReleases => Tr("Änderungen ansehen", "View changes");
+
+    /// <summary>Die Änderungsliste lohnt nur, wenn es auch etwas Neues gibt.</summary>
+    public bool HasUpdate => Application.State == ComponentState.UpdateAvailable;
+
+    public string UpdateSourceHint => Tr(
+        "Der Versionscheck liest eine einfache Datei (update.json) aus der jüngsten Veröffentlichung – " +
+        "ohne Anmeldung und ohne Abrufgrenze. Eingespielt wird nur, was der hinterlegten Prüfsumme entspricht, " +
+        "und nur nach deiner Zustimmung.",
+        "The version check reads a plain file (update.json) from the latest release – no sign-in, no rate limit. " +
+        "Only a file matching the recorded checksum is installed, and only after you agree.");
+
     public string LabelLocation => Tr("Ort", "Location");
+
+    public string LabelInstallation => Tr("Einbauart", "Installed as");
 
     public string SourceHint => Tr(
         "Bezugsquelle ist die offizielle Paketliste von Google (dl.google.com) – dieselbe, die auch " +

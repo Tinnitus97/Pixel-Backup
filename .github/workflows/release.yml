@@ -1,0 +1,180 @@
+name: Release
+
+# Baut alle Fassungen und hängt sie an eine Veröffentlichung:
+#   PixelBackup-<v>-win-x64.exe, PixelBackup-<v>-win-arm64.exe
+#   .deb, .rpm, .AppImage, Flatpak-Bündel, .tar.gz
+#   SHA256SUMS und update.json (daraus liest der Versionscheck der Anwendung)
+#
+# Ausgelöst durch einen Merkmalsnamen (v0.9.0) oder von Hand.
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Name der Veröffentlichung (z. B. v0.9.0); leer = aus Directory.Build.props"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  # ------------------------------------------------------------------ Windows
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET einrichten
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Testen
+        run: dotnet test -c Release
+
+      - name: Fassung ermitteln
+        id: version
+        shell: bash
+        run: echo "value=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)" >> "$GITHUB_OUTPUT"
+
+      - name: Eigenständige EXE bauen (x64 und arm64)
+        shell: bash
+        run: |
+          set -eu
+          for rid in win-x64 win-arm64; do
+            dotnet publish src/PixelBackup.App -c Release -r "$rid" --self-contained true \
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None \
+              -o "publish/$rid"
+            mkdir -p dist
+            cp "publish/$rid/PixelBackup.exe" "dist/PixelBackup-${{ steps.version.outputs.value }}-$rid.exe"
+          done
+
+      - name: Ergebnis ablegen
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-pakete
+          path: dist/
+          if-no-files-found: error
+
+  # -------------------------------------------------------------------- Linux
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET einrichten
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Paketwerkzeuge einrichten
+        run: |
+          sudo apt-get update
+          # rpm: .rpm, squashfs-tools: AppImage, flatpak-builder: Flatpak-Bündel
+          sudo apt-get install -y --no-install-recommends rpm squashfs-tools flatpak flatpak-builder
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+
+      - name: Testen
+        run: dotnet test -c Release
+
+      - name: Alle Linux-Pakete bauen
+        run: ./packaging/linux/package.sh --require-all
+
+      - name: Ergebnis ablegen
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-pakete
+          path: dist/
+          if-no-files-found: error
+
+  # -------------------------------------------------------- Veröffentlichung
+  release:
+    name: Veröffentlichung
+    needs: [ windows, linux ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pakete einsammeln
+        uses: actions/download-artifact@v4
+        with:
+          path: eingesammelt
+
+      - name: In einen Ordner legen
+        run: |
+          mkdir -p dist
+          find eingesammelt -type f -exec cp {} dist/ \;
+          ls -lh dist
+
+      - name: Fassung und Name bestimmen
+        id: version
+        run: |
+          version="$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)"
+          tag="${{ inputs.tag }}"
+          if [ -z "$tag" ]; then
+            case "${{ github.ref }}" in
+              refs/tags/*) tag="${GITHUB_REF#refs/tags/}" ;;
+              *) tag="v$version" ;;
+            esac
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Prüfsummen und update.json erzeugen
+        run: |
+          cd dist && sha256sum * > SHA256SUMS && cd ..
+          ./packaging/make-update-manifest.sh \
+            --version "${{ steps.version.outputs.value }}" \
+            --tag "${{ steps.version.outputs.tag }}" \
+            --dist dist
+          cat dist/update.json
+
+      - name: Veröffentlichung anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="Pixel Backup ${{ steps.version.outputs.value }}
+
+          | Datei | Wofür |
+          | --- | --- |
+          | \`PixelBackup-…-win-x64.exe\` | Windows 10/11 (x64) – eine Datei, kein .NET nötig |
+          | \`PixelBackup-…-win-arm64.exe\` | Windows auf ARM |
+          | \`pixel-backup_…_amd64.deb\` | Debian, Ubuntu, Mint, Pop!_OS |
+          | \`pixel-backup-…x86_64.rpm\` | Fedora, openSUSE, RHEL |
+          | \`PixelBackup-…-x86_64.AppImage\` | läuft ohne Installation |
+          | \`pixel-backup-….flatpak\` | Flatpak-Bündel |
+          | \`pixel-backup-…-linux-x64.tar.gz\` | portabel, jede Verteilung |
+
+          Prüfsummen: \`SHA256SUMS\`. Der eingebaute Versionscheck liest \`update.json\` und
+          bietet die zur Einbauart passende Datei an."
+
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Pixel Backup ${{ steps.version.outputs.value }}" \
+            --notes "$notes" \
+            dist/*
+
+      - name: update.json im Quellstand mitführen
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Rückfallweg für den Versionscheck: dieselbe Datei im Standardzweig.
+          default="${{ github.event.repository.default_branch }}"
+          git fetch origin "$default"
+          git checkout "$default"
+          cp dist/update.json update.json
+          if git diff --quiet -- update.json; then
+            echo "update.json ist unverändert."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git commit -m "update.json auf ${{ steps.version.outputs.value }}"
+          git push origin "$default"

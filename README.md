@@ -67,6 +67,11 @@ und die Geräteregeln eingerichtet
 
 ![Ansicht „Komponenten“ unter X11](docs/screenshots/live/08-komponenten-x11.png)
 
+**Versionscheck** – dieselbe Seite mit einer angebotenen Aktualisierung: Pixel Backup erkennt die
+eigene Fassung und die Einbauart und spielt auf Knopfdruck die passende Datei ein
+
+![Versionscheck mit angebotener Aktualisierung](docs/screenshots/live/09-versionscheck.png)
+
 ### Mit angeschlossenem Gerät
 
 Diese Bilder sind **maßstabsgetreue Layout-Darstellungen** aus dem XAML (kein Testlauf), weil hier
@@ -149,6 +154,15 @@ Android-Telefon einspielen lassen:
 Beim Wiederherstellen legt Pixel Backup diese Dateien unter `/sdcard/PixelBackup-Import` auf dem
 Zielgerät ab. Jeder Sicherungssatz enthält zusätzlich `umzug-anleitung.txt` mit den Schritten für
 genau diesen Satz.
+
+### Versionscheck und Aktualisierung
+
+* Erkennt die eigene Fassung **und die Einbauart** (EXE, `.deb`, `.rpm`, AppImage, Flatpak,
+  portabel) und bietet genau die dazu passende Datei an.
+* Holt und prüft sie selbst: SHA-256 muss stimmen, sonst wird nichts eingespielt.
+* Tauscht die Programmdatei aus und startet neu – oder übergibt das Paket der Paketverwaltung.
+* Läuft beim Start (abschaltbar) und jederzeit über die Seite „Komponenten“.
+* Einzelheiten im Abschnitt [„Versionscheck und Aktualisierung“](#versionscheck-und-aktualisierung).
 
 ### Sprache, Erscheinungsbild und Komponenten
 
@@ -272,7 +286,7 @@ dotnet run --project src/PixelBackup.App
 ```
 
 Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 93 grüne
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 154 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:
@@ -311,11 +325,11 @@ Flatpak. Ein Aufruf erzeugt alle fünf:
 ```
 
 ```
-dist/pixel-backup_1.0.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   32 MB
-dist/pixel-backup-1.0.0-1.x86_64.rpm         Fedora, openSUSE, RHEL …          39 MB
-dist/PixelBackup-1.0.0-x86_64.AppImage       läuft ohne Installation           35 MB
-dist/pixel-backup-1.0.0.flatpak              Flatpak-Bündel
-dist/pixel-backup-1.0.0-linux-x64.tar.gz     portabel, jede Verteilung         40 MB
+dist/pixel-backup_0.9.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   32 MB
+dist/pixel-backup-0.9.0-1.x86_64.rpm         Fedora, openSUSE, RHEL …          39 MB
+dist/PixelBackup-0.9.0-x86_64.AppImage       läuft ohne Installation           35 MB
+dist/pixel-backup-0.9.0.flatpak              Flatpak-Bündel
+dist/pixel-backup-0.9.0-linux-x64.tar.gz     portabel, jede Verteilung         40 MB
 ```
 
 Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur dieses Format
@@ -324,12 +338,12 @@ Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur die
 **Einspielen:**
 
 ```bash
-sudo apt install ./dist/pixel-backup_1.0.0_amd64.deb      # Debian-Familie
-sudo dnf install ./dist/pixel-backup-1.0.0-1.x86_64.rpm   # Fedora, RHEL
-chmod +x dist/PixelBackup-1.0.0-x86_64.AppImage && ./dist/PixelBackup-1.0.0-x86_64.AppImage
-flatpak install --user ./dist/pixel-backup-1.0.0.flatpak  # Flatpak
-tar xzf pixel-backup-1.0.0-linux-x64.tar.gz               # portabel
-./pixel-backup-1.0.0/install.sh                           # trägt es ins Startmenü ein
+sudo apt install ./dist/pixel-backup_0.9.0_amd64.deb      # Debian-Familie
+sudo dnf install ./dist/pixel-backup-0.9.0-1.x86_64.rpm   # Fedora, RHEL
+chmod +x dist/PixelBackup-0.9.0-x86_64.AppImage && ./dist/PixelBackup-0.9.0-x86_64.AppImage
+flatpak install --user ./dist/pixel-backup-0.9.0.flatpak  # Flatpak
+tar xzf pixel-backup-0.9.0-linux-x64.tar.gz               # portabel
+./pixel-backup-0.9.0/install.sh                           # trägt es ins Startmenü ein
 cd packaging/arch && makepkg -si                          # Arch, Manjaro
 ```
 
@@ -348,6 +362,92 @@ Entfernen: `sudo apt remove pixel-backup` beziehungsweise `./packaging/linux/uni
 Wer lieber mit installiertem .NET arbeitet, spart Platz: eine framework-abhängige Fassung
 (`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 91 MiB,
 setzt dann aber die .NET-10-Runtime auf dem Zielrechner voraus.
+
+## Versionscheck und Aktualisierung
+
+Pixel Backup weiß, **welche Fassung** es ist und **wie es eingespielt wurde** – und holt sich
+Aktualisierungen auf demselben Weg. Auf der Seite **Komponenten** steht es als dritter Eintrag
+neben adb und den Geräteregeln.
+
+| Einbauart | Was „Jetzt aktualisieren“ tut |
+| --- | --- |
+| `PixelBackup.exe` (Windows) | lädt die neue EXE, vergleicht die Prüfsumme, tauscht die Datei nach dem Beenden aus und startet neu |
+| AppImage | dasselbe mit der AppImage-Datei (`$APPIMAGE`) |
+| portable Fassung (`.tar.gz`) | holt die Programmdatei aus dem Archiv und tauscht sie aus |
+| `.deb` | `pkexec apt-get install -y …` mit dem geladenen Paket |
+| `.rpm` | `pkexec dnf install -y …` (openSUSE: `zypper`) |
+| Flatpak | `flatpak install --user --bundle …`; aus dem Behälter heraus über `flatpak-spawn --host` |
+
+Erkannt wird die Einbauart an `FLATPAK_ID` bzw. `/.flatpak-info`, an `APPIMAGE`, am Betriebssystem
+und – unterhalb von `/usr` – an der Auskunft von `dpkg -S` und `rpm -qf`. Für Windows ist es immer
+die EXE, alles Übrige gilt als portabel.
+
+**Woher die Angaben kommen:** aus einer gewöhnlichen Datei namens `update.json`, die an jeder
+Veröffentlichung hängt:
+
+```
+https://github.com/Tinnitus97/Pixel-Backup/releases/latest/download/update.json
+```
+
+```json
+{
+  "schema": 1,
+  "version": "0.9.1",
+  "released": "2026-09-13",
+  "notes": "https://github.com/Tinnitus97/Pixel-Backup/releases/tag/v0.9.1",
+  "packages": [
+    { "kind": "windows-exe", "arch": "x64",   "url": "…/PixelBackup-0.9.1-win-x64.exe", "sha256": "…", "size": 95765428 },
+    { "kind": "deb",         "arch": "amd64", "url": "…/pixel-backup_0.9.1_amd64.deb",  "sha256": "…", "size": 33188892 }
+  ]
+}
+```
+
+Das ist bewusst **keine Abfrage der GitHub-Schnittstelle**: die erlaubt ohne Anmeldung nur 60
+Abrufe je Stunde und IP-Adresse, und ein Zugangsschlüssel hat in einem verteilten Programm nichts
+zu suchen. Eine Datei aus dem Auslieferungsnetz kennt diese Grenze nicht.
+
+Zwei Zusagen gelten immer:
+
+* **Nichts ohne Zustimmung.** Der Versionscheck läuft beim Start (abschaltbar in den
+  Einstellungen), geladen und eingespielt wird erst nach Rückfrage.
+* **Nichts ohne Prüfsumme.** Was nicht zum hinterlegten SHA-256 passt, wird gelöscht statt
+  eingespielt. Aus dem `.tar.gz` wird ausschließlich der Eintrag `PixelBackup` übernommen.
+
+Eine eigene Adresse für `update.json` – etwa ein Firmenserver – lässt sich in
+`settings.json` unter `updateManifestUrl` eintragen.
+
+## Veröffentlichungen bauen (GitHub Actions)
+
+Zwei Abläufe liegen in `.github/workflows/`:
+
+| Ablauf | Wann | Was |
+| --- | --- | --- |
+| `build.yml` | bei jedem Push | baut und testet unter Windows und Linux, prüft den Start unter X11, baut alle Linux-Pakete |
+| `release.yml` | bei einem Merkmal `v*` oder von Hand | baut **alle** Fassungen, hängt sie an eine Veröffentlichung und erzeugt `SHA256SUMS` und `update.json` |
+
+```bash
+git tag v0.9.0 && git push origin v0.9.0
+```
+
+Danach entsteht eine Veröffentlichung mit:
+
+```
+PixelBackup-0.9.0-win-x64.exe      Windows 10/11 (x64)
+PixelBackup-0.9.0-win-arm64.exe    Windows auf ARM
+pixel-backup_0.9.0_amd64.deb       Debian, Ubuntu, Mint, Pop!_OS
+pixel-backup-0.9.0-1.x86_64.rpm    Fedora, openSUSE, RHEL
+PixelBackup-0.9.0-x86_64.AppImage  ohne Installation
+pixel-backup-0.9.0.flatpak         Flatpak-Bündel
+pixel-backup-0.9.0-linux-x64.tar.gz  portabel
+SHA256SUMS                         Prüfsummen aller Dateien
+update.json                        Grundlage des Versionschecks
+```
+
+`update.json` lässt sich auch von Hand erzeugen – etwa zum Nachsehen, was die Anwendung liest:
+
+```bash
+./packaging/make-update-manifest.sh --version 0.9.0 --tag v0.9.0 --dist dist
+```
 
 ## Einrichten unter Linux
 
@@ -489,9 +589,10 @@ tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stape
 packaging/linux/        Installations- und Paketskripte (deb, rpm, AppImage, Flatpak, tar.gz),
                         Geräteregeln, Startmenü-Eintrag, Symbole
 packaging/flatpak/      Flatpak-Bauanleitung und AppStream-Angaben
+packaging/make-update-manifest.sh  erzeugt update.json für den Versionscheck
 packaging/arch/         PKGBUILD für Arch und Manjaro
 packaging/windows/      Veröffentlichungsskript für die eigenständige EXE
-.github/workflows/      Bau, Tests, X11-Startprüfung und alle Linux-Pakete
+.github/workflows/      Bau, Tests, X11-Startprüfung, alle Pakete und die Veröffentlichung
 ```
 
 Details zur Architektur: [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).

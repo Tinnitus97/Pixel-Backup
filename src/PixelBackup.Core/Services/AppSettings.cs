@@ -53,6 +53,12 @@ public sealed class AppSettings
     /// <summary>Fehlende Plattform-Tools beim Start selbsttätig nachinstallieren.</summary>
     public bool AutoInstallAdb { get; set; } = true;
 
+    /// <summary>Beim Start nachsehen, ob es eine neuere Fassung gibt.</summary>
+    public bool CheckUpdatesOnStart { get; set; } = true;
+
+    /// <summary>Eigene Adresse für update.json; leer = die eingebaute.</summary>
+    public string? UpdateManifestUrl { get; set; }
+
     public List<string> SelectedCategories { get; set; } = new();
 
     public static string DefaultBackupRoot => Path.Combine(
@@ -74,6 +80,8 @@ public sealed class AppSettings
         Language = Language,
         CheckComponentsOnStart = CheckComponentsOnStart,
         AutoInstallAdb = AutoInstallAdb,
+        CheckUpdatesOnStart = CheckUpdatesOnStart,
+        UpdateManifestUrl = UpdateManifestUrl,
         SelectedCategories = new List<string>(SelectedCategories)
     };
 }

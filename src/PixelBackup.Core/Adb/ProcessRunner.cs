@@ -30,6 +30,52 @@ public sealed record ProcessResult(int ExitCode, string StandardOutput, string S
 /// <summary>Startet externe Prozesse (adb) und sammelt deren Ausgabe ein.</summary>
 public static class ProcessRunner
 {
+    /// <summary>
+    /// Kurzer Aufruf mit fester Zeitgrenze für Auskünfte wie "dpkg -S …".
+    /// Fehlt das Programm, ist das kein Fehler, sondern schlicht ein Nein.
+    /// </summary>
+    public static bool TryRunQuick(string fileName, string arguments, out string output, int timeoutMs = 4000)
+    {
+        output = string.Empty;
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo(fileName, arguments)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (process is null)
+            {
+                return false;
+            }
+
+            if (!process.WaitForExit(timeoutMs))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (Exception)
+                {
+                    // Dann eben nicht.
+                }
+
+                return false;
+            }
+
+            output = process.StandardOutput.ReadToEnd().Trim();
+            return process.ExitCode == 0;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     public static async Task<ProcessResult> RunAsync(
         string fileName,
         IReadOnlyList<string> arguments,
