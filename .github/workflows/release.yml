@@ -161,7 +161,10 @@ jobs:
           Prüfsummen: \`SHA256SUMS\`. Der eingebaute Versionscheck liest \`update.json\` und
           bietet die zur Einbauart passende Datei an."
 
+          # --target: bei einem Start von Hand gibt es das Merkmal noch nicht,
+          # es wird dann genau auf diesem Stand angelegt.
           gh release create "${{ steps.version.outputs.tag }}" \
+            --target "${{ github.sha }}" \
             --title "Pixel Backup ${{ steps.version.outputs.value }}" \
             --notes "$notes" \
             dist/*
