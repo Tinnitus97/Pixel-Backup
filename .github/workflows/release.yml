@@ -39,7 +39,11 @@ jobs:
       - name: Fassung ermitteln
         id: version
         shell: bash
-        run: echo "value=$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)" >> "$GITHUB_OUTPUT"
+        # sed statt grep -P: das Git-Bash unter Windows kennt -P nicht sicher.
+        run: |
+          version="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' Directory.Build.props | head -1)"
+          test -n "$version"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Eigenständige EXE bauen (x64 und arm64)
         shell: bash
@@ -118,7 +122,7 @@ jobs:
       - name: Fassung und Name bestimmen
         id: version
         run: |
-          version="$(grep -oPm1 '(?<=<Version>)[^<]+' Directory.Build.props)"
+          version="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' Directory.Build.props | head -1)"
           tag="${{ inputs.tag }}"
           if [ -z "$tag" ]; then
             case "${{ github.ref }}" in
