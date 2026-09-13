@@ -35,6 +35,15 @@
         </StackPanel>
       </Border>
 
+      <Border Classes="card"
+              IsVisible="{Binding HasPermissionProblem}"
+              Background="#FFF4E5">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <TextBlock Text="!" FontSize="22" FontWeight="Bold" Foreground="#B3760F" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding PermissionHint}" TextWrapping="Wrap" Foreground="#5A4100" />
+        </StackPanel>
+      </Border>
+
       <Border Classes="card" IsVisible="{Binding Session.HasDevice}">
         <StackPanel Spacing="6">
           <TextBlock Text="{Binding SectionInfo}" Classes="h2" Margin="0,0,0,4" />

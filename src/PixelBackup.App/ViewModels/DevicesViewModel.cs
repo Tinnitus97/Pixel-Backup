@@ -1,4 +1,5 @@
 using PixelBackup.App.Mvvm;
+using PixelBackup.Core.Adb;
 using PixelBackup.App.Services;
 using PixelBackup.Core.Diagnostics;
 
@@ -25,6 +26,7 @@ public sealed class DevicesViewModel : ViewModelBase
         {
             if (e.PropertyName is nameof(AppSession.AdbAvailable) or nameof(AppSession.SelectedDevice))
             {
+                OnPropertyChanged(nameof(HasPermissionProblem));
                 RefreshCommand.RaiseCanExecuteChanged();
                 RestartAdbCommand.RaiseCanExecuteChanged();
                 ConnectWirelessCommand.RaiseCanExecuteChanged();
@@ -64,6 +66,16 @@ public sealed class DevicesViewModel : ViewModelBase
     public string SectionWireless => Tr("Drahtlos verbinden", "Connect wirelessly");
 
     public string SectionFirstSteps => Tr("Erste Schritte", "Getting started");
+
+    /// <summary>Erscheint, wenn adb ein Gerät sieht, aber nicht darauf zugreifen darf.</summary>
+    public bool HasPermissionProblem =>
+        _session.Devices.Any(d => d.State == AdbDeviceState.NoPermissions);
+
+    public string PermissionHint => Tr(
+        "Ein Gerät ist angeschlossen, adb darf aber nicht darauf zugreifen. Unter „Komponenten“ lassen " +
+        "sich die Geräteregeln (udev) einrichten; danach das Kabel einmal abziehen und wieder anstecken.",
+        "A device is connected but adb is not allowed to access it. The device rules (udev) can be set up " +
+        "under \"Components\"; afterwards unplug the cable once and plug it back in.");
 
     public string LabelRefresh => Tr("Aktualisieren", "Refresh");
 

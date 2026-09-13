@@ -46,25 +46,25 @@
         <Border Classes="card">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <TextBlock Grid.Column="0"
-                       Text="{Binding UsbDriver.Glyph}"
+                       Text="{Binding DeviceAccess.Glyph}"
                        FontSize="26"
                        Margin="0,0,16,0"
                        VerticalAlignment="Center" />
 
             <StackPanel Grid.Column="1" Spacing="3">
-              <TextBlock Text="{Binding UsbDriver.Name}" FontWeight="SemiBold" FontSize="15" />
-              <TextBlock Text="{Binding UsbDriver.StateText}" Classes="hint" />
-              <TextBlock Text="{Binding UsbDriver.Message}" TextWrapping="Wrap" />
-              <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0" IsVisible="{Binding IsWindows}">
+              <TextBlock Text="{Binding DeviceAccess.Name}" FontWeight="SemiBold" FontSize="15" />
+              <TextBlock Text="{Binding DeviceAccess.StateText}" Classes="hint" />
+              <TextBlock Text="{Binding DeviceAccess.Message}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,4,0,0" IsVisible="{Binding ShowVersionOfDeviceAccess}">
                 <TextBlock Text="{Binding LabelVersion}" Classes="hint" FontSize="12" />
-                <TextBlock Text="{Binding UsbDriver.VersionText}" FontSize="12" />
+                <TextBlock Text="{Binding DeviceAccess.VersionText}" FontSize="12" />
               </StackPanel>
             </StackPanel>
 
             <Button Grid.Column="2"
-                    Content="{Binding LabelInstallDriver}"
-                    Command="{Binding InstallDriverCommand}"
-                    IsVisible="{Binding IsWindows}"
+                    Content="{Binding LabelInstallDeviceAccess}"
+                    Command="{Binding InstallDeviceAccessCommand}"
+                    IsVisible="{Binding CanSetUpDeviceAccess}"
                     VerticalAlignment="Center"
                     MinWidth="200" />
           </Grid>
@@ -73,7 +73,19 @@
         <Border Classes="card">
           <StackPanel Spacing="6">
             <TextBlock Text="{Binding SummaryText}" FontWeight="SemiBold" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding SourceHint}" Classes="hint" FontSize="12" />
+
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,2,0,0">
+              <TextBlock Text="{Binding LabelSystem}" Classes="hint" FontSize="12" />
+              <TextBlock Text="{Binding SystemText}" FontSize="12" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding PackageHint}"
+                       IsVisible="{Binding HasPackageHint}"
+                       Classes="hint"
+                       FontSize="12"
+                       TextWrapping="Wrap" />
+
+            <TextBlock Text="{Binding SourceHint}" Classes="hint" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
 

@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            rid: win-x64
+          - os: ubuntu-latest
+            name: Linux
+            rid: linux-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET einrichten
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Abhängigkeiten holen
+        run: dotnet restore
+
+      - name: Bauen
+        run: dotnet build -c Release --no-restore
+
+      - name: Testen
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Eigenständige Fassung erzeugen
+        run: >
+          dotnet publish src/PixelBackup.App -c Release -r ${{ matrix.rid }}
+          --self-contained true -p:PublishSingleFile=true -p:DebugType=None
+          -o publish/${{ matrix.rid }}
+
+      - name: Ergebnis ablegen
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixel-backup-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}
+          if-no-files-found: error

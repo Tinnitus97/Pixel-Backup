@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Pixel Backup
+GenericName=Android backup
+GenericName[de]=Android-Sicherung
+Comment=Back up and restore Android devices over adb
+Comment[de]=Android-Geräte über adb sichern und wiederherstellen
+Exec=pixel-backup
+Icon=pixel-backup
+Terminal=false
+Categories=Utility;Archiving;System;
+Keywords=android;adb;backup;restore;phone;
+Keywords[de]=android;adb;sicherung;backup;wiederherstellen;telefon;
+StartupWMClass=PixelBackup

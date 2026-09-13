@@ -123,11 +123,29 @@ Treiber (`Win32_PnPSignedDriver`). Die Installation läuft über `pnputil /add-d
 mit Rückfrage der Benutzerkontensteuerung. Auf Linux und macOS meldet der Dienst „nicht
 erforderlich“ samt Hinweis auf die udev-Regeln.
 
+## Unterschiede zwischen den Betriebssystemen
+
+Der Kern ist plattformneutral; nur der Zugang zum Gerät unterscheidet sich. `ComponentService`
+wählt dafür zur Laufzeit den passenden Dienst:
+
+| | Windows (Hauptsystem) | Linux | macOS |
+| --- | --- | --- | --- |
+| Zugangskomponente | `UsbDriverService` (Google-USB-Treiber) | `LinuxDeviceAccessService` (udev-Regeln) | – |
+| Prüfung | PowerShell: Treiberspeicher, gebundener Treiber, Geräte mit Problemkennung | Regeldateien in `/etc/udev/rules.d` und `/usr/lib/udev/rules.d`, Gruppenzugehörigkeit, `adb devices` | entfällt |
+| Einrichtung | `pnputil /add-driver … /install` mit Rückfrage der Benutzerkontensteuerung | Skript über `pkexec` bzw. `sudo`: Regeln schreiben, Gruppe `plugdev`, `udevadm` neu laden | entfällt |
+| adb | wird bei Bedarf von Google geladen | ebenso; alternativ das Paket der Verteilung | ebenso |
+
+`LinuxEnvironment` liest `/etc/os-release`, erkennt daraus die Paketverwaltung (apt, pacman, dnf,
+zypper, apk) und nennt in der Oberfläche den passenden Befehl. Meldet `adb devices` ein Gerät mit
+`no permissions`, wird daraus der Gerätezustand `NoPermissions` – die Geräteseite blendet dann einen
+Hinweis ein, die Komponenten-Seite meldet ein Problem und bietet die Regeln an.
+
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 63 bestandene Tests, und die Anwendung wurde unter X11 gestartet und
-durchgeklickt. Dabei sind drei Fehler aufgefallen und behoben worden:
+`dotnet test` meldet 74 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04, X11)
+gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
+Erkennung eines echten adb (34.0.4). Dabei sind drei Fehler aufgefallen und behoben worden:
 
 * `PlatformToolsInstaller.ParseVersion` las die Protokollfassung „1.0.41“ statt der
   Werkzeugfassung – dadurch hätte die Aktualisierungsprüfung immer ein Update gemeldet.

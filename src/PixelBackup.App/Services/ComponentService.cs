@@ -17,6 +17,7 @@ public sealed class ComponentService : ObservableObject
     private readonly AppSession _session;
     private readonly PlatformToolsInstaller _installer;
     private readonly UsbDriverService _usbDriver;
+    private readonly LinuxDeviceAccessService _linuxAccess;
 
     private ComponentStatus _adb;
     private ComponentStatus _usb;
@@ -32,9 +33,10 @@ public sealed class ComponentService : ObservableObject
         _session = session;
         _installer = new PlatformToolsInstaller(session.Log);
         _usbDriver = new UsbDriverService(session.Log);
+        _linuxAccess = new LinuxDeviceAccessService(session.Log);
 
         _adb = new ComponentStatus { Name = Loc.Tr("Android-Plattform-Tools (adb)", "Android platform tools (adb)") };
-        _usb = new ComponentStatus { Name = Loc.Tr("USB-Treiber (Google)", "USB driver (Google)") };
+        _usb = new ComponentStatus { Name = DeviceAccessName };
     }
 
     public ComponentStatus Adb
@@ -48,7 +50,10 @@ public sealed class ComponentService : ObservableObject
         }
     }
 
-    public ComponentStatus UsbDriver
+    /// <summary>
+    /// Der Zugang zum Gerät: unter Windows der USB-Treiber, unter Linux die udev-Regeln.
+    /// </summary>
+    public ComponentStatus DeviceAccess
     {
         get => _usb;
         private set
@@ -59,7 +64,17 @@ public sealed class ComponentService : ObservableObject
         }
     }
 
-    public bool AllHealthy => Adb.IsHealthy && UsbDriver.IsHealthy;
+    public bool AllHealthy => Adb.IsHealthy && DeviceAccess.IsHealthy;
+
+    /// <summary>Name der plattformabhängigen Zugangskomponente.</summary>
+    public static string DeviceAccessName => OperatingSystem.IsWindows()
+        ? Loc.Tr("USB-Treiber (Google)", "USB driver (Google)")
+        : OperatingSystem.IsLinux()
+            ? Loc.Tr("Geräteregeln (udev)", "Device rules (udev)")
+            : Loc.Tr("Gerätezugriff", "Device access");
+
+    /// <summary>Lässt sich die Zugangskomponente auf diesem System einrichten?</summary>
+    public static bool CanSetUpDeviceAccess => OperatingSystem.IsWindows() || OperatingSystem.IsLinux();
 
     public bool IsBusy
     {
@@ -109,14 +124,26 @@ public sealed class ComponentService : ObservableObject
             _adbPackage = adbPackage;
             Adb = adbStatus;
 
-            var (usbStatus, usbPackage) = await _usbDriver.CheckAsync(online, ct).ConfigureAwait(false);
-            _usbPackage = usbPackage;
-            UsbDriver = usbStatus;
+            ComponentStatus accessStatus;
+            if (OperatingSystem.IsLinux())
+            {
+                // Sieht adb ein Gerät, darf aber nicht zugreifen, fehlen die Regeln sicher.
+                var blocked = _session.Devices.Any(d => d.State == AdbDeviceState.NoPermissions);
+                accessStatus = await _linuxAccess.CheckAsync(blocked, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                var (usbStatus, usbPackage) = await _usbDriver.CheckAsync(online, ct).ConfigureAwait(false);
+                _usbPackage = usbPackage;
+                accessStatus = usbStatus;
+            }
+
+            DeviceAccess = accessStatus;
 
             _lastCheck = DateTimeOffset.Now;
             _session.Log.Info(Loc.Tr(
-                $"Komponenten geprüft – adb: {adbStatus.StateText}, USB-Treiber: {usbStatus.StateText}.",
-                $"Components checked – adb: {adbStatus.StateText}, USB driver: {usbStatus.StateText}."));
+                $"Komponenten geprüft – adb: {adbStatus.StateText}, {DeviceAccessName}: {accessStatus.StateText}.",
+                $"Components checked – adb: {adbStatus.StateText}, {DeviceAccessName}: {accessStatus.StateText}."));
         }
         catch (OperationCanceledException)
         {
@@ -213,12 +240,20 @@ public sealed class ComponentService : ObservableObject
         }
     }
 
-    /// <summary>Lädt den Google-USB-Treiber und übergibt ihn an Windows.</summary>
-    public async Task<(bool Success, string Message)> InstallUsbDriverAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Richtet den Gerätezugang ein: unter Windows den Google-USB-Treiber,
+    /// unter Linux die udev-Regeln.
+    /// </summary>
+    public async Task<(bool Success, string Message)> InstallDeviceAccessAsync(CancellationToken ct = default)
     {
+        if (OperatingSystem.IsLinux())
+        {
+            return await InstallUdevRulesAsync(ct).ConfigureAwait(false);
+        }
+
         if (!UsbDriverService.IsWindows)
         {
-            return (false, Loc.Tr("Nur unter Windows nötig.", "Only needed on Windows."));
+            return (false, Loc.Tr("Auf diesem System nicht nötig.", "Not needed on this system."));
         }
 
         if (IsBusy)
@@ -272,6 +307,34 @@ public sealed class ComponentService : ObservableObject
         }
     }
 
+    /// <summary>Schreibt die udev-Regeln (fragt dabei nach Administratorrechten).</summary>
+    private async Task<(bool Success, string Message)> InstallUdevRulesAsync(CancellationToken ct)
+    {
+        if (IsBusy)
+        {
+            return (false, Loc.Tr("Es läuft bereits ein Vorgang.", "Another operation is already running."));
+        }
+
+        IsBusy = true;
+        Percent = 0;
+        BusyText = Loc.Tr(
+            "Geräteregeln werden eingerichtet (Rückfrage bestätigen) …",
+            "Installing device rules (please confirm the prompt) …");
+
+        try
+        {
+            var result = await _linuxAccess.InstallAsync(ct).ConfigureAwait(false);
+            await RefreshAfterChangeAsync(ct).ConfigureAwait(false);
+            return result;
+        }
+        finally
+        {
+            IsBusy = false;
+            BusyText = string.Empty;
+            Percent = 0;
+        }
+    }
+
     private async Task RefreshAfterChangeAsync(CancellationToken ct)
     {
         IsBusy = false;
@@ -282,7 +345,7 @@ public sealed class ComponentService : ObservableObject
     public void RefreshTexts()
     {
         OnPropertyChanged(nameof(Adb));
-        OnPropertyChanged(nameof(UsbDriver));
+        OnPropertyChanged(nameof(DeviceAccess));
         OnPropertyChanged(nameof(AllHealthy));
     }
 }

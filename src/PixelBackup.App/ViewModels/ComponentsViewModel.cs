@@ -23,9 +23,9 @@ public sealed class ComponentsViewModel : ViewModelBase
 
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => Components.IsIdle, ReportError);
         InstallAdbCommand = new AsyncRelayCommand(InstallAdbAsync, () => Components.IsIdle, ReportError);
-        InstallDriverCommand = new AsyncRelayCommand(
-            InstallDriverAsync,
-            () => Components.IsIdle && UsbDriverService.IsWindows,
+        InstallDeviceAccessCommand = new AsyncRelayCommand(
+            InstallDeviceAccessAsync,
+            () => Components.IsIdle && ComponentService.CanSetUpDeviceAccess,
             ReportError);
 
         Components.PropertyChanged += (_, _) =>
@@ -54,13 +54,16 @@ public sealed class ComponentsViewModel : ViewModelBase
 
     public AsyncRelayCommand InstallAdbCommand { get; }
 
-    public AsyncRelayCommand InstallDriverCommand { get; }
+    public AsyncRelayCommand InstallDeviceAccessCommand { get; }
 
     public ComponentStatus Adb => Components.Adb;
 
-    public ComponentStatus UsbDriver => Components.UsbDriver;
+    public ComponentStatus DeviceAccess => Components.DeviceAccess;
 
-    public bool IsWindows => UsbDriverService.IsWindows;
+    /// <summary>Gibt es auf diesem System überhaupt etwas einzurichten?</summary>
+    public bool CanSetUpDeviceAccess => ComponentService.CanSetUpDeviceAccess;
+
+    public bool ShowVersionOfDeviceAccess => OperatingSystem.IsWindows();
 
     public string LastCheckText => Components.LastCheck == default
         ? Tr("noch nicht geprüft", "not checked yet")
@@ -98,24 +101,32 @@ public sealed class ComponentsViewModel : ViewModelBase
         await DialogService.ShowInfoAsync(Tr("Plattform-Tools", "Platform tools"), StatusMessage);
     }
 
-    private async Task InstallDriverAsync()
+    private async Task InstallDeviceAccessAsync()
     {
-        var confirmed = await DialogService.ConfirmAsync(
-            Tr("USB-Treiber einrichten", "Install USB driver"),
-            Tr("Der Google-USB-Treiber wird geladen und an Windows übergeben. " +
-               "Dafür erscheint die Rückfrage der Benutzerkontensteuerung.",
-               "The Google USB driver will be downloaded and handed to Windows. " +
-               "Windows will ask for administrator rights."));
+        var question = OperatingSystem.IsLinux()
+            ? Tr("Pixel Backup legt die Datei /etc/udev/rules.d/51-android.rules an, nimmt dich in die " +
+                 "Gruppe „plugdev“ auf und lädt die Regeln neu. Dafür werden einmalig Administratorrechte " +
+                 "abgefragt (pkexec oder sudo).",
+                 "Pixel Backup creates /etc/udev/rules.d/51-android.rules, adds you to the \"plugdev\" group " +
+                 "and reloads the rules. This asks for administrator rights once (pkexec or sudo).")
+            : Tr("Der Google-USB-Treiber wird geladen und an Windows übergeben. " +
+                 "Dafür erscheint die Rückfrage der Benutzerkontensteuerung.",
+                 "The Google USB driver will be downloaded and handed to Windows. " +
+                 "Windows will ask for administrator rights.");
 
+        var confirmed = await DialogService.ConfirmAsync(LabelInstallDeviceAccess, question);
         if (!confirmed)
         {
             return;
         }
 
-        var (success, message) = await Components.InstallUsbDriverAsync().ConfigureAwait(true);
+        var (success, message) = await Components.InstallDeviceAccessAsync().ConfigureAwait(true);
         StatusMessage = message;
+
         await DialogService.ShowInfoAsync(
-            success ? Tr("USB-Treiber", "USB driver") : Tr("USB-Treiber nicht eingerichtet", "USB driver not installed"),
+            success
+                ? ComponentService.DeviceAccessName
+                : Tr("Nicht eingerichtet", "Not installed"),
             message);
     }
 
@@ -123,7 +134,7 @@ public sealed class ComponentsViewModel : ViewModelBase
     {
         RefreshCommand.RaiseCanExecuteChanged();
         InstallAdbCommand.RaiseCanExecuteChanged();
-        InstallDriverCommand.RaiseCanExecuteChanged();
+        InstallDeviceAccessCommand.RaiseCanExecuteChanged();
     }
 
     private void ReportError(Exception ex)
@@ -134,11 +145,35 @@ public sealed class ComponentsViewModel : ViewModelBase
 
     #region Beschriftungen
 
-    public string PageHint => Tr(
-        "Pixel Backup benötigt die Android-Plattform-Tools (adb). Unter Windows hilft zusätzlich " +
-        "der Google-USB-Treiber, wenn ein Gerät nicht erkannt wird. Beides lässt sich hier einrichten.",
-        "Pixel Backup needs the Android platform tools (adb). On Windows the Google USB driver helps " +
-        "as well when a device is not recognised. Both can be set up here.");
+    /// <summary>Der Hinweis nennt die Bestandteile, die auf diesem System wirklich gebraucht werden.</summary>
+    public string PageHint
+    {
+        get
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                return Tr(
+                    "Pixel Backup benötigt die Android-Plattform-Tools (adb). Die Geräteregeln (udev) sorgen " +
+                    "dafür, dass adb ohne Root-Rechte auf das Telefon zugreifen darf. Beides lässt sich hier einrichten.",
+                    "Pixel Backup needs the Android platform tools (adb). The device rules (udev) let adb reach " +
+                    "the phone without root privileges. Both can be set up here.");
+            }
+
+            if (OperatingSystem.IsWindows())
+            {
+                return Tr(
+                    "Pixel Backup benötigt die Android-Plattform-Tools (adb). Der Google-USB-Treiber hilft, " +
+                    "wenn Windows ein Gerät nicht erkennt. Beides lässt sich hier einrichten.",
+                    "Pixel Backup needs the Android platform tools (adb). The Google USB driver helps when " +
+                    "Windows does not recognise a device. Both can be set up here.");
+            }
+
+            return Tr(
+                "Pixel Backup benötigt die Android-Plattform-Tools (adb). Weitere Bestandteile werden auf " +
+                "diesem System nicht gebraucht.",
+                "Pixel Backup needs the Android platform tools (adb). No further components are needed on this system.");
+        }
+    }
 
     public string LabelRefresh => Tr("Jetzt prüfen", "Check now");
 
@@ -146,7 +181,51 @@ public sealed class ComponentsViewModel : ViewModelBase
         ? Tr("Plattform-Tools aktualisieren", "Update platform tools")
         : Tr("Plattform-Tools installieren", "Install platform tools");
 
-    public string LabelInstallDriver => Tr("USB-Treiber einrichten", "Install USB driver");
+    public string LabelInstallDeviceAccess => OperatingSystem.IsLinux()
+        ? Tr("Geräteregeln einrichten", "Install device rules")
+        : Tr("USB-Treiber einrichten", "Install USB driver");
+
+    /// <summary>Betriebssystem samt Verteilung – hilft beim Nachvollziehen von Meldungen.</summary>
+    public string SystemText
+    {
+        get
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return $"Windows · {Environment.OSVersion.Version}";
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                var distribution = LinuxEnvironment.Describe();
+                return string.IsNullOrEmpty(distribution) ? "Linux" : "Linux · " + distribution;
+            }
+
+            return OperatingSystem.IsMacOS() ? "macOS" : Environment.OSVersion.Platform.ToString();
+        }
+    }
+
+    public string LabelSystem => Tr("System", "System");
+
+    /// <summary>Unter Linux der Befehl, mit dem die Verteilung adb selbst mitbringt.</summary>
+    public string PackageHint
+    {
+        get
+        {
+            if (!OperatingSystem.IsLinux())
+            {
+                return string.Empty;
+            }
+
+            var tools = LinuxEnvironment.PlatformToolsPackageCommand;
+            return tools is null
+                ? string.Empty
+                : Tr($"Aus den Paketquellen ginge es auch: {tools}",
+                     $"The package manager would work as well: {tools}");
+        }
+    }
+
+    public bool HasPackageHint => PackageHint.Length > 0;
 
     public string LabelVersion => Tr("Fassung", "Version");
 

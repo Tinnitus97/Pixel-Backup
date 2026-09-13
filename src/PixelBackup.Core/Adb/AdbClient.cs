@@ -76,11 +76,19 @@ public sealed class AdbClient
     public async Task<IReadOnlyList<AdbDevice>> ListDevicesAsync(CancellationToken ct = default)
     {
         var result = await ExecAsync(new[] { "devices", "-l" }, ct).ConfigureAwait(false);
+        return ParseDeviceList(result.StandardOutput);
+    }
+
+    /// <summary>Wertet die Ausgabe von <c>adb devices -l</c> aus. Öffentlich für die Tests.</summary>
+    public static List<AdbDevice> ParseDeviceList(string output)
+    {
         var devices = new List<AdbDevice>();
 
-        foreach (var line in result.OutputLines)
+        foreach (var raw in output.Split('\n'))
         {
-            if (line.StartsWith("List of devices", StringComparison.OrdinalIgnoreCase) ||
+            var line = raw.TrimEnd('\r');
+            if (line.Trim().Length == 0 ||
+                line.StartsWith("List of devices", StringComparison.OrdinalIgnoreCase) ||
                 line.StartsWith("*", StringComparison.Ordinal) ||
                 line.StartsWith("adb server", StringComparison.OrdinalIgnoreCase))
             {
@@ -92,6 +100,11 @@ public sealed class AdbClient
             {
                 continue;
             }
+
+            // "1234567890\tno permissions (user in plugdev group; are your udev rules wrong?)"
+            var state = line.Contains("no permissions", StringComparison.OrdinalIgnoreCase)
+                ? AdbDeviceState.NoPermissions
+                : ParseState(parts[1]);
 
             var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var part in parts.Skip(2))
@@ -106,7 +119,7 @@ public sealed class AdbClient
             devices.Add(new AdbDevice
             {
                 Serial = parts[0],
-                State = ParseState(parts[1]),
+                State = state,
                 Model = properties.GetValueOrDefault("model", string.Empty),
                 Product = properties.GetValueOrDefault("product", string.Empty),
                 DeviceName = properties.GetValueOrDefault("device", string.Empty),

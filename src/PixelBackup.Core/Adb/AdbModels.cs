@@ -21,6 +21,10 @@ public enum AdbDeviceState
     Device,
     Unauthorized,
     Offline,
+
+    /// <summary>Gerät ist sichtbar, adb darf aber nicht zugreifen (fehlende udev-Regeln unter Linux).</summary>
+    NoPermissions,
+
     Recovery,
     Sideload,
     Bootloader
@@ -55,6 +59,9 @@ public sealed class AdbDevice
             "nicht autorisiert – bitte USB-Debugging am Gerät bestätigen",
             "unauthorised – please confirm USB debugging on the device"),
         AdbDeviceState.Offline => Loc.Tr("offline", "offline"),
+        AdbDeviceState.NoPermissions => Loc.Tr(
+            "kein Zugriff – Geräteregeln fehlen (siehe „Komponenten“)",
+            "no access – device rules missing (see \"Components\")"),
         AdbDeviceState.Recovery => Loc.Tr("Recovery-Modus", "recovery mode"),
         AdbDeviceState.Sideload => Loc.Tr("Sideload-Modus", "sideload mode"),
         AdbDeviceState.Bootloader => Loc.Tr("Bootloader/Fastboot", "bootloader/fastboot"),

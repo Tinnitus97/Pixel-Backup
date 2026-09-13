@@ -25,6 +25,7 @@ public sealed class UsbDriverService
         _client = client ?? new SdkRepositoryClient(_log);
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatformGuard("windows")]
     public static bool IsWindows => OperatingSystem.IsWindows();
 
     public static string ManagedDirectory => Path.Combine(

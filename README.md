@@ -8,6 +8,10 @@ Die gesamte Gerätekommunikation läuft nativ über **adb** (Android Debug Bridg
 das Programm mit jedem Android-Gerät, das USB-Debugging beherrscht – Google Pixel, Samsung, Xiaomi,
 OnePlus, Motorola, Sony, Fairphone und andere.
 
+**Windows ist das Hauptsystem**, für das die Anwendung gedacht ist. **Linux wird gleichwertig
+unterstützt** – mit Startmenü-Eintrag, Installationsskript und den Geräteregeln (udev) direkt aus
+der Anwendung heraus.
+
 > Die Sicherungen sind **keine undurchsichtigen Container**: Fotos bleiben Fotos, Dokumente bleiben
 > Dokumente. Jeder Sicherungssatz lässt sich im Explorer öffnen und einzeln weiterverwenden.
 
@@ -23,8 +27,9 @@ OnePlus, Motorola, Sony, Fairphone und andere.
 
 ### Echte Aufnahmen des laufenden Programms
 
-Gebaut mit dem .NET-10-SDK, gestartet unter X11; im Testlauf war **kein Gerät angeschlossen** und
-es lagen **keine Sicherungen** vor – deshalb sind die Listen leer und die Schaltflächen gesperrt.
+Gebaut mit dem .NET-10-SDK, gestartet unter X11 (Ubuntu 24.04); im Testlauf war **kein Gerät
+angeschlossen** und es lagen **keine Sicherungen** vor – deshalb sind die Listen leer. Unter Windows
+sieht die Anwendung genauso aus, nur mit den Windows-eigenen Bedienelementen.
 
 **Gerät** – ohne angeschlossenes Telefon; unten rechts meldet die Statuszeile den fehlenden adb-Stand
 
@@ -170,18 +175,38 @@ genau diesen Satz.
 
 ---
 
+## Betriebssysteme
+
+| System | Stand |
+| --- | --- |
+| **Windows 10 / 11** (x64, ARM64) | **Hauptsystem.** USB-Treiberprüfung und -einrichtung über `pnputil`, eigenständige EXE über das Veröffentlichungsskript. |
+| **Linux** – Debian, Ubuntu, Mint, Arch, Manjaro, Fedora, openSUSE, Alpine … | **Voll unterstützt.** Gleicher Funktionsumfang, Startmenü-Eintrag, Erkennung der Verteilung, Geräteregeln (udev) aus der Anwendung heraus. |
+| macOS (x64, Apple Silicon) | Läuft grundsätzlich (Avalonia und adb sind dort zu Hause), wird aber nicht regelmäßig geprüft. Ein Treiber wird nicht benötigt. |
+
+Der Unterschied zwischen den Systemen betrifft nur den Zugang zum Gerät:
+
+* **Windows** braucht bei manchen Geräten den **Google-USB-Treiber**.
+* **Linux** braucht **udev-Regeln**, sonst meldet adb `no permissions`. Pixel Backup erkennt das,
+  schreibt die Regeln auf Wunsch nach `/etc/udev/rules.d/51-android.rules`, legt die Gruppe
+  `plugdev` an und lädt die Regeln neu.
+* **macOS** braucht nichts davon.
+
 ## Voraussetzungen
 
-* Windows 10/11 (das Programm läuft dank Avalonia auch unter Linux und macOS).
+* **Windows 10/11** (Hauptsystem) oder **Linux**; macOS läuft ebenfalls.
 * [.NET 10 SDK](https://dotnet.microsoft.com/download) zum Bauen bzw. die .NET 10 Desktop Runtime
-  zum Ausführen (dieselbe Grundlage wie OfficeInstall).
+  zum Ausführen (dieselbe Grundlage wie OfficeInstall). Wer die eigenständigen Fassungen aus
+  `packaging/` verwendet, braucht auf dem Zielrechner gar kein .NET.
 * **Android-Plattform-Tools (`adb`) – müssen nicht von Hand installiert werden.**
   Pixel Backup sucht `adb` in PATH, im Android-SDK, neben der Anwendung und an den üblichen
-  Orten; findet es nichts, lädt es die Plattform-Tools beim Start selbst herunter
-  (`%LOCALAPPDATA%\PixelBackup\platform-tools`). Der Pfad lässt sich in den Einstellungen
-  jederzeit überschreiben.
-* **USB-Treiber** – nur unter Windows und nur, wenn ein Gerät nicht erkannt wird; die
-  Komponenten-Seite erkennt das und richtet den Google-Treiber ein.
+  Orten; findet es nichts, lädt es die Plattform-Tools beim Start selbst herunter:
+  * Windows: `%LOCALAPPDATA%\PixelBackup\platform-tools`
+  * Linux/macOS: `~/.local/share/PixelBackup/platform-tools`
+
+  Unter Linux geht genauso gut das Paket der Verteilung (`android-sdk-platform-tools`,
+  `android-tools`); der Pfad lässt sich in den Einstellungen jederzeit überschreiben.
+* **Gerätezugang** – unter Windows bei Bedarf der Google-USB-Treiber, unter Linux die udev-Regeln.
+  Die Komponenten-Seite erkennt beides und richtet es ein.
 * Am Gerät: **Entwickleroptionen** aktivieren (siebenmal auf die Build-Nummer tippen) und
   **USB-Debugging** einschalten. Beim ersten Anschließen die Abfrage am Telefon bestätigen.
 
@@ -213,6 +238,53 @@ dotnet test
 ```
 
 ---
+
+## Einrichten unter Linux
+
+**1. .NET besorgen** (einmalig, je nach Verteilung):
+
+```bash
+sudo apt install dotnet-sdk-10.0        # Debian, Ubuntu, Mint
+sudo pacman -S dotnet-sdk               # Arch, Manjaro
+sudo dnf install dotnet-sdk-10.0        # Fedora
+sudo zypper install dotnet-sdk-10.0     # openSUSE
+```
+
+**2. Pixel Backup einrichten:**
+
+```bash
+git clone https://github.com/Tinnitus97/Pixel-Backup.git
+cd Pixel-Backup
+./packaging/linux/install.sh            # nur für den angemeldeten Benutzer
+./packaging/linux/install.sh --system   # systemweit nach /opt
+./packaging/linux/install.sh --udev     # zusätzlich die Geräteregeln einrichten
+```
+
+Das Skript baut eine eigenständige Fassung (kein .NET auf dem Zielrechner nötig), legt den Starter
+`pixel-backup` an und trägt die Anwendung mit Symbol ins Startmenü ein. Entfernen:
+`./packaging/linux/uninstall.sh`.
+
+**3. Geräteregeln** – nötig, damit adb ohne Root-Rechte auf das Telefon darf. Entweder in der
+Anwendung unter **Komponenten ▸ Geräteregeln einrichten** oder von Hand:
+
+```bash
+./packaging/linux/install-udev-rules.sh   # schreibt 51-android.rules, legt plugdev an, lädt neu
+```
+
+Danach das Gerät einmal ab- und wieder anstecken. Erscheint es weiterhin als „kein Zugriff“, einmal
+ab- und wieder anmelden (die neue Gruppenzugehörigkeit greift erst dann). Wer lieber die Pakete der
+Verteilung nimmt: `android-sdk-platform-tools-common` (Debian/Ubuntu) oder `android-udev` (Arch).
+
+## Einrichten unter Windows
+
+Entweder das Projekt mit dem .NET-10-SDK bauen und starten, oder eine eigenständige EXE erzeugen:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\packaging\windows\publish.ps1
+```
+
+Ergebnis ist `publish\PixelBackup.exe` – eine einzelne Datei ohne vorinstalliertes .NET. adb lädt
+die Anwendung beim ersten Start selbst nach; den USB-Treiber richtet sie auf der Komponenten-Seite ein.
 
 ## Bedienung in Kürze
 
@@ -301,7 +373,11 @@ src/PixelBackup.Core/   Fachlogik ohne UI: adb-Hülle, Kategorien, Sicherung, Wi
                         Prüfung, Archivierung, Einstellungen, Sprachverwaltung,
                         Komponenten (Plattform-Tools, USB-Treiber)
 src/PixelBackup.App/    Avalonia-Oberfläche (MVVM, ohne zusätzliche MVVM-Abhängigkeit)
-tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto
+tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto,
+                        Sprachumschaltung, Paketlisten und die Linux-Geräteregeln
+packaging/linux/        Installationsskripte, Geräteregeln, Startmenü-Eintrag, Symbole
+packaging/windows/      Veröffentlichungsskript für die eigenständige EXE
+.github/workflows/      Bau und Tests unter Windows und Linux
 ```
 
 Details zur Architektur: [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).
