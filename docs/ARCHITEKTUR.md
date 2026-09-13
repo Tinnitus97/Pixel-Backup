@@ -179,8 +179,12 @@ eingebetteten nativen Bibliotheken in einen Zwischenspeicher des Benutzers.
 | `.deb` | `dpkg-deb` | Dateien unter `/usr/lib/pixel-backup`, Starter in `/usr/bin`, Startmenü-Eintrag und Symbole; `postinst` frischt Desktop- und Symbolzwischenspeicher auf |
 | `.rpm` | `rpmbuild` | derselbe `/usr`-Baum; Nachbearbeitung und Debug-Paket sind abgeschaltet, damit die fertige Einzeldatei unverändert bleibt |
 | `.AppImage` | `mksquashfs` | Typ-2-Abbild aus AppImage-Laufzeit und zstd-Dateisystem, läuft ohne Installation |
-| `.flatpak` | `flatpak-builder` | Bündel auf `org.freedesktop.Platform//24.08`, Freigaben für X11/Wayland, USB-Geräte und Benutzerordner |
+| `.flatpak` | `flatpak-builder` | Bündel auf `org.freedesktop.Platform//24.08`, Freigaben für X11/Wayland, USB-Geräte und Benutzerordner; bewusst nur PNG-Symbole, weil `appstreamcli` am Ende des Baus ein SVG ohne librsvg-Lader nicht lesen kann |
 | `.tar.gz` | `tar` | portables Archiv mit kleinem Einrichtungsskript für den angemeldeten Benutzer |
+
+`packaging/flatpak/check-metainfo.sh` macht in zwei Sekunden dieselbe Prüfung
+(`appstreamcli validate` und `compose`), mit der `flatpak-builder` einen Bau erst nach Minuten
+abbrechen würde; beide Abläufe in `.github/workflows/` rufen sie vor dem Paketbau auf.
 
 `--formats` wählt einzelne Formate aus, `--require-all` bricht ab, sobald eines fehlschlägt (so
 läuft es in der CI). Ohne diese Option wird ein Format, dessen Werkzeug fehlt, übersprungen und am

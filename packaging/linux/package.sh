@@ -346,7 +346,7 @@ build_flatpak() {
   install -m 0755 "$BINARY" "$src/PixelBackup"
   install -m 0644 "$REPO_ROOT/packaging/flatpak/$APP_ID.metainfo.xml" "$src/"
   install -m 0644 "$REPO_ROOT/packaging/flatpak/$APP_ID.yml" "$src/"
-  install -m 0644 "$SVG" "$src/icon.svg"
+  # Kein SVG: appstreamcli kann es im Bau-Behälter nicht lesen (siehe Bauanleitung).
   for size in 48 64 128 256; do
     install -m 0644 "$ICON_DIR/${size}x${size}/apps/pixel-backup.png" "$src/icon-${size}.png"
   done

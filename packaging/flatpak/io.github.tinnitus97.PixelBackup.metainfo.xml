@@ -32,6 +32,10 @@
     </p>
   </description>
 
+  <developer id="io.github.tinnitus97">
+    <name>Tinnitus97</name>
+  </developer>
+
   <launchable type="desktop-id">io.github.tinnitus97.PixelBackup.desktop</launchable>
   <url type="homepage">https://github.com/Tinnitus97/Pixel-Backup</url>
   <url type="bugtracker">https://github.com/Tinnitus97/Pixel-Backup/issues</url>

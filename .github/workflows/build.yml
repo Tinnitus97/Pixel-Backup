@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt-get update
           # rpm: .rpm, squashfs-tools: AppImage, flatpak-builder: Flatpak-Bündel
-          sudo apt-get install -y --no-install-recommends rpm squashfs-tools flatpak flatpak-builder
+          sudo apt-get install -y --no-install-recommends rpm squashfs-tools flatpak flatpak-builder appstream
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
 
@@ -68,6 +68,11 @@ jobs:
             done
             xwininfo -root -children | grep "Pixel Backup"
             kill $app'
+
+      - name: AppStream-Angaben prüfen
+        if: matrix.os == 'ubuntu-latest'
+        # Dieselbe Prüfung, die flatpak-builder am Ende macht – nur in Sekunden.
+        run: ./packaging/flatpak/check-metainfo.sh
 
       - name: Linux-Pakete bauen (tar.gz, deb, rpm, AppImage, Flatpak)
         if: matrix.os == 'ubuntu-latest'
