@@ -1,0 +1,54 @@
+# Flatpak-Bauanleitung für Pixel Backup.
+#
+# Bauen (die Vorlage erwartet die fertige Anwendung im selben Ordner):
+#   ../linux/package.sh --formats flatpak
+#
+# Von Hand:
+#   flatpak install flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+#   flatpak-builder --repo=repo --force-clean build io.github.tinnitus97.PixelBackup.yml
+#   flatpak build-bundle repo pixel-backup.flatpak io.github.tinnitus97.PixelBackup
+app-id: io.github.tinnitus97.PixelBackup
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: pixel-backup
+
+finish-args:
+  # Fenster: Avalonia zeichnet über X11. Unter Wayland-Sitzungen übernimmt das
+  # XWayland, deshalb sind beide Sockets freigegeben.
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  # adb spricht das Telefon über USB an und braucht dafür die Geräteknoten.
+  - --device=all
+  # adb-Server und die Paketliste von Google.
+  - --share=network
+  # Sicherungen landen im Benutzerordner; der Pfad ist in den Einstellungen frei wählbar.
+  - --filesystem=home
+  # Externe Datenträger als Ziel für große Sicherungen.
+  - --filesystem=/run/media
+  - --filesystem=/media
+
+modules:
+  - name: pixel-backup
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 PixelBackup /app/lib/pixel-backup/PixelBackup
+      - install -Dm755 pixel-backup.sh /app/bin/pixel-backup
+      - install -Dm644 io.github.tinnitus97.PixelBackup.desktop
+        /app/share/applications/io.github.tinnitus97.PixelBackup.desktop
+      - install -Dm644 io.github.tinnitus97.PixelBackup.metainfo.xml
+        /app/share/metainfo/io.github.tinnitus97.PixelBackup.metainfo.xml
+      - install -Dm644 icon-256.png
+        /app/share/icons/hicolor/256x256/apps/io.github.tinnitus97.PixelBackup.png
+      - install -Dm644 icon-128.png
+        /app/share/icons/hicolor/128x128/apps/io.github.tinnitus97.PixelBackup.png
+      - install -Dm644 icon-64.png
+        /app/share/icons/hicolor/64x64/apps/io.github.tinnitus97.PixelBackup.png
+      - install -Dm644 icon-48.png
+        /app/share/icons/hicolor/48x48/apps/io.github.tinnitus97.PixelBackup.png
+      - install -Dm644 icon.svg
+        /app/share/icons/hicolor/scalable/apps/io.github.tinnitus97.PixelBackup.svg
+    sources:
+      - type: dir
+        path: .

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.tinnitus97.PixelBackup</id>
+
+  <name>Pixel Backup</name>
+  <summary>Back up and restore Android devices over adb</summary>
+  <summary xml:lang="de">Android-Geräte über adb sichern und wiederherstellen</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+
+  <description>
+    <p>
+      Pixel Backup copies photos, videos, music, documents, apps as well as contacts, messages
+      and appointments from an Android device to the computer and puts them back – entirely
+      through adb, without installing anything on the phone.
+    </p>
+    <p xml:lang="de">
+      Pixel Backup sichert Fotos, Videos, Musik, Dokumente, Apps sowie Kontakte, Nachrichten und
+      Termine eines Android-Gerätes auf den Rechner und spielt sie wieder zurück – vollständig
+      über adb, ohne App auf dem Telefon.
+    </p>
+    <p>
+      Backups stay ordinary files and can be used without the program. Groups such as photos,
+      videos or apps can be selected individually, incremental runs only transfer what changed,
+      and checksums make a backup verifiable.
+    </p>
+    <p xml:lang="de">
+      Die Sicherungen bleiben gewöhnliche Dateien und lassen sich auch ohne das Programm
+      weiterverwenden. Gruppen wie Fotos, Videos oder Apps sind einzeln wählbar, inkrementelle
+      Läufe übertragen nur Geändertes, und Prüfsummen machen eine Sicherung überprüfbar.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.tinnitus97.PixelBackup.desktop</launchable>
+  <url type="homepage">https://github.com/Tinnitus97/Pixel-Backup</url>
+  <url type="bugtracker">https://github.com/Tinnitus97/Pixel-Backup/issues</url>
+
+  <categories>
+    <category>Utility</category>
+    <category>Archiving</category>
+  </categories>
+
+  <keywords>
+    <keyword>android</keyword>
+    <keyword>adb</keyword>
+    <keyword>backup</keyword>
+    <keyword>restore</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.0.0" date="2026-09-13">
+      <description>
+        <p>First release: backup and restore by group, incremental runs, import files for
+           contacts, messages and calendar, German and English, light and dark.</p>
+      </description>
+    </release>
+  </releases>
+</component>
