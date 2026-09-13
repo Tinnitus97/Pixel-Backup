@@ -239,6 +239,53 @@ dotnet test
 
 ---
 
+## Bereitstellung: was beim Bauen herauskommt
+
+| | **Windows** | **Linux** |
+| --- | --- | --- |
+| Ergebnis | `PixelBackup.exe` | `PixelBackup` – eine ausführbare ELF-Datei **ohne Endung** |
+| Größe (eigenständig) | ~90 MiB, eine Datei | 91 MiB, eine Datei |
+| .NET auf dem Zielrechner | nicht nötig | nicht nötig |
+| Erzeugt mit | `packaging\windows\publish.ps1` | `packaging/linux/install.sh` bzw. `package.sh` |
+| Verteilbare Pakete | die EXE selbst | `.deb` (32 MB) und `.tar.gz` (40 MB), dazu ein PKGBUILD für Arch |
+
+Unter Linux gibt es kein Gegenstück zur EXE-Datei mit Doppelklick-Kultur – üblich sind entweder ein
+**Paket der Verteilung** oder ein **portables Archiv**. Beides erzeugt ein Aufruf:
+
+```bash
+./packaging/linux/package.sh
+```
+
+```
+dist/pixel-backup_1.0.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …
+dist/pixel-backup-1.0.0-linux-x64.tar.gz     portabel, jede Verteilung
+```
+
+**Einspielen:**
+
+```bash
+sudo apt install ./dist/pixel-backup_1.0.0_amd64.deb     # Debian-Familie
+tar xzf pixel-backup-1.0.0-linux-x64.tar.gz              # portabel
+./pixel-backup-1.0.0/install.sh                          # trägt es ins Startmenü ein
+cd packaging/arch && makepkg -si                         # Arch, Manjaro
+```
+
+Das Paket legt ab:
+
+```
+/usr/lib/pixel-backup/PixelBackup           die Anwendung (eine Datei)
+/usr/bin/pixel-backup                       Starter für die Kommandozeile
+/usr/share/applications/pixel-backup.desktop  Eintrag im Startmenü
+/usr/share/icons/hicolor/…/pixel-backup.png   Symbole
+```
+
+Danach steht „Pixel Backup“ im Startmenü und lässt sich im Terminal mit `pixel-backup` aufrufen.
+Entfernen: `sudo apt remove pixel-backup` beziehungsweise `./packaging/linux/uninstall.sh`.
+
+Wer lieber mit installiertem .NET arbeitet, spart Platz: eine framework-abhängige Fassung
+(`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 91 MiB,
+setzt dann aber die .NET-10-Runtime auf dem Zielrechner voraus.
+
 ## Einrichten unter Linux
 
 **1. .NET besorgen** (einmalig, je nach Verteilung):
@@ -262,7 +309,8 @@ cd Pixel-Backup
 
 Das Skript baut eine eigenständige Fassung (kein .NET auf dem Zielrechner nötig), legt den Starter
 `pixel-backup` an und trägt die Anwendung mit Symbol ins Startmenü ein. Entfernen:
-`./packaging/linux/uninstall.sh`.
+`./packaging/linux/uninstall.sh`. Wer stattdessen ein Paket weitergeben will, nimmt
+`./packaging/linux/package.sh` (siehe oben).
 
 **3. Geräteregeln** – nötig, damit adb ohne Root-Rechte auf das Telefon darf. Entweder in der
 Anwendung unter **Komponenten ▸ Geräteregeln einrichten** oder von Hand:
@@ -375,7 +423,8 @@ src/PixelBackup.Core/   Fachlogik ohne UI: adb-Hülle, Kategorien, Sicherung, Wi
 src/PixelBackup.App/    Avalonia-Oberfläche (MVVM, ohne zusätzliche MVVM-Abhängigkeit)
 tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto,
                         Sprachumschaltung, Paketlisten und die Linux-Geräteregeln
-packaging/linux/        Installationsskripte, Geräteregeln, Startmenü-Eintrag, Symbole
+packaging/linux/        Installations- und Paketskripte, Geräteregeln, Startmenü-Eintrag, Symbole
+packaging/arch/         PKGBUILD für Arch und Manjaro
 packaging/windows/      Veröffentlichungsskript für die eigenständige EXE
 .github/workflows/      Bau und Tests unter Windows und Linux
 ```

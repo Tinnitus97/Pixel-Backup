@@ -1,0 +1,60 @@
+# Maintainer: Tinnitus97
+#
+# Bauen und einspielen:
+#   cd packaging/arch && makepkg -si
+#
+# Das Paket enthält eine eigenständige Fassung (kein .NET zur Laufzeit nötig).
+pkgname=pixel-backup
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Sicherung und Wiederherstellung für Android-Geräte über adb"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Tinnitus97/Pixel-Backup"
+license=('custom')
+depends=('fontconfig' 'libx11' 'icu' 'zlib' 'gcc-libs')
+makedepends=('dotnet-sdk>=10.0' 'git')
+optdepends=('android-tools: adb aus den Paketquellen statt aus dem Netz'
+            'android-udev: fertige Geräteregeln der Verteilung')
+source=("git+$url.git#tag=v$pkgver")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/Pixel-Backup"
+
+  local rid="linux-x64"
+  [ "$CARCH" = "aarch64" ] && rid="linux-arm64"
+
+  export DOTNET_CLI_TELEMETRY_OPTOUT=1
+  export DOTNET_NOLOGO=1
+
+  dotnet publish src/PixelBackup.App \
+    -c Release -r "$rid" --self-contained true \
+    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None \
+    -o "$srcdir/out"
+}
+
+check() {
+  cd "$srcdir/Pixel-Backup"
+  dotnet test -c Release --nologo
+}
+
+package() {
+  install -Dm755 "$srcdir/out/PixelBackup" "$pkgdir/usr/lib/$pkgname/PixelBackup"
+
+  install -d "$pkgdir/usr/bin"
+  printf '#!/bin/sh\nexec /usr/lib/%s/PixelBackup "$@"\n' "$pkgname" > "$pkgdir/usr/bin/$pkgname"
+  chmod 755 "$pkgdir/usr/bin/$pkgname"
+
+  cd "$srcdir/Pixel-Backup"
+  install -Dm644 packaging/linux/pixel-backup.desktop \
+    "$pkgdir/usr/share/applications/pixel-backup.desktop"
+  install -Dm644 packaging/pixel-backup.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/pixel-backup.svg"
+
+  for size in 16 24 32 48 64 128 256; do
+    install -Dm644 "packaging/linux/icons/hicolor/${size}x${size}/apps/pixel-backup.png" \
+      "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/pixel-backup.png"
+  done
+
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

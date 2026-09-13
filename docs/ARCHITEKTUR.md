@@ -140,12 +140,27 @@ zypper, apk) und nennt in der Oberfläche den passenden Befehl. Meldet `adb devi
 `no permissions`, wird daraus der Gerätezustand `NoPermissions` – die Geräteseite blendet dann einen
 Hinweis ein, die Komponenten-Seite meldet ein Problem und bietet die Regeln an.
 
+## Bereitstellung
+
+Beide Systeme bekommen dieselbe Bauweise: eine eigenständige Einzeldatei
+(`PublishSingleFile` samt `IncludeNativeLibrariesForSelfExtract`, damit auch SkiaSharp und
+HarfBuzz mit in die Datei wandern). Unter Windows ist das `PixelBackup.exe`, unter Linux die
+endungslose ELF-Datei `PixelBackup` (91 MiB). Beim ersten Start entpackt die .NET-Laufzeit die
+eingebetteten nativen Bibliotheken in einen Zwischenspeicher des Benutzers.
+
+`packaging/linux/package.sh` baut daraus zwei Verteilwege: ein `.deb` (Dateien unter
+`/usr/lib/pixel-backup`, Starter in `/usr/bin`, Startmenü-Eintrag und Symbole, `postinst` frischt
+Desktop- und Symbolzwischenspeicher auf) und ein `.tar.gz` mit einem kleinen Einrichtungsskript für
+den angemeldeten Benutzer. Für Arch liegt ein PKGBUILD bereit, das aus dem Git-Stand baut und
+dabei auch die Tests laufen lässt.
+
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
 `dotnet test` meldet 74 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04, X11)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
-Erkennung eines echten adb (34.0.4). Dabei sind drei Fehler aufgefallen und behoben worden:
+Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit
+`dpkg -i` eingespielt, über `/usr/bin/pixel-backup` gestartet und wieder entfernt. Dabei sind drei Fehler aufgefallen und behoben worden:
 
 * `PlatformToolsInstaller.ParseVersion` las die Protokollfassung „1.0.41“ statt der
   Werkzeugfassung – dadurch hätte die Aktualisierungsprüfung immer ein Update gemeldet.

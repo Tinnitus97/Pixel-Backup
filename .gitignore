@@ -5,6 +5,7 @@ obj/
 [Rr]elease/
 artifacts/
 publish/
+dist/
 *.user
 *.suo
 *.userprefs

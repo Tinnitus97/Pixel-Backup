@@ -57,7 +57,7 @@ trap 'rm -rf "$STAGE"' EXIT
 echo "▸ Baue Pixel Backup für $RID …"
 dotnet publish "$REPO_ROOT/src/PixelBackup.App" \
   -c Release -r "$RID" --self-contained true \
-  -p:PublishSingleFile=true -p:DebugType=None \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None \
   -o "$STAGE" >/dev/null
 
 echo "▸ Installiere nach $PREFIX …"
