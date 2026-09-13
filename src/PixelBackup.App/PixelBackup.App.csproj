@@ -10,6 +10,20 @@
     <ApplicationIcon>Assets/pixel-backup.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+
+    <!-- Eigenständige Fassung: die eingebettete .NET-Laufzeit wird in der
+         Einzeldatei komprimiert. Das halbiert sie (91 MiB -> 46 MiB); beim
+         ersten Start entpackt die Laufzeit sie einmalig in den Zwischenspeicher
+         des Benutzers, was rund eine Zehntelsekunde kostet. Wirkt nur bei
+         PublishSingleFile in der eigenständigen Fassung; eine
+         framework-abhängige Fassung bleibt unberührt. -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+
+    <!-- Keine Debug-Symbole mit ausliefern; das betrifft auch die nativen PDBs
+         von SkiaSharp und HarfBuzz, die sonst neben der Datei landen. -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
 
   <ItemGroup>

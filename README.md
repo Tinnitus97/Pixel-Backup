@@ -309,10 +309,21 @@ dotnet test
 | | **Windows** | **Linux** |
 | --- | --- | --- |
 | Ergebnis | `PixelBackup.exe` | `PixelBackup` – eine ausführbare ELF-Datei **ohne Endung** |
-| Größe (eigenständig) | ~90 MiB, eine Datei | 91 MiB, eine Datei |
+| Größe (eigenständig) | 46 MiB, eine Datei | 46 MiB, eine Datei |
 | .NET auf dem Zielrechner | nicht nötig | nicht nötig |
 | Erzeugt mit | `packaging\windows\publish.ps1` | `packaging/linux/install.sh` bzw. `package.sh` |
 | Verteilbare Pakete | die EXE selbst | `.deb`, `.rpm`, `.AppImage`, Flatpak-Bündel und `.tar.gz`, dazu ein PKGBUILD für Arch |
+
+**Warum nur 46 MiB:** Die eingebettete .NET-Laufzeit wird in der Einzeldatei komprimiert
+(`EnableCompressionInSingleFile`). Das halbiert die Datei – aus 91 MiB werden 46 MiB, aus der
+Windows-EXE 96 MiB → 46 MiB. Beim ersten Start entpackt die Laufzeit sie einmalig in den
+Zwischenspeicher des Benutzers; das kostet gemessen rund eine Zehntelsekunde (0,97 s statt 0,84 s
+bis zum Fenster), jeder weitere Start ist gleich schnell.
+
+Eine Ausnahme ist die **AppImage**: Sie ist selbst schon ein komprimiertes Dateisystem. Dort steckt
+deshalb bewusst die unkomprimierte Fassung – zweimal komprimieren würde die Datei nur größer machen
+(39 MB statt 34 MB). Bei `.deb` und `.rpm` ist es umgekehrt: das Paket wird etwas größer
+(38 statt 32 MB), dafür belegt die eingespielte Anwendung 46 statt 91 MiB auf der Platte.
 
 Unter Linux gibt es kein Gegenstück zur EXE-Datei mit Doppelklick-Kultur – üblich sind ein **Paket
 der Verteilung**, ein **portables Archiv** oder ein in sich geschlossenes Format wie AppImage und
@@ -325,11 +336,11 @@ Flatpak. Ein Aufruf erzeugt alle fünf:
 ```
 
 ```
-dist/pixel-backup_0.9.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   32 MB
+dist/pixel-backup_0.9.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   38 MB
 dist/pixel-backup-0.9.0-1.x86_64.rpm         Fedora, openSUSE, RHEL …          39 MB
-dist/PixelBackup-0.9.0-x86_64.AppImage       läuft ohne Installation           35 MB
+dist/PixelBackup-0.9.0-x86_64.AppImage       läuft ohne Installation           34 MB
 dist/pixel-backup-0.9.0.flatpak              Flatpak-Bündel
-dist/pixel-backup-0.9.0-linux-x64.tar.gz     portabel, jede Verteilung         40 MB
+dist/pixel-backup-0.9.0-linux-x64.tar.gz     portabel, jede Verteilung         39 MB
 ```
 
 Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur dieses Format
@@ -360,7 +371,7 @@ Danach steht „Pixel Backup“ im Startmenü und lässt sich im Terminal mit `p
 Entfernen: `sudo apt remove pixel-backup` beziehungsweise `./packaging/linux/uninstall.sh`.
 
 Wer lieber mit installiertem .NET arbeitet, spart Platz: eine framework-abhängige Fassung
-(`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 91 MiB,
+(`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 46 MiB,
 setzt dann aber die .NET-10-Runtime auf dem Zielrechner voraus.
 
 ## Versionscheck und Aktualisierung

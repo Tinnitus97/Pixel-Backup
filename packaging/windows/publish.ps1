@@ -6,6 +6,9 @@
         powershell -ExecutionPolicy Bypass -File .\packaging\windows\publish.ps1 -Runtime win-arm64
 
     Ergebnis: .\publish\PixelBackup.exe – eine einzelne Datei ohne vorinstalliertes .NET.
+    Rund 46 MiB: die eingebettete Laufzeit ist komprimiert (EnableCompressionInSingleFile
+    steht im Projekt), sonst wären es 96 MiB. Der erste Start dauert dadurch
+    etwa eine Zehntelsekunde länger, jeder weitere ist gleich schnell.
 #>
 param(
     [string]$Runtime = "win-x64",

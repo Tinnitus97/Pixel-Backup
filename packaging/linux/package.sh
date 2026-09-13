@@ -7,8 +7,9 @@
 #   PixelBackup-<fassung>-<arch>.AppImage        läuft ohne Installation
 #   pixel-backup-<fassung>.flatpak               Flatpak-Bündel
 #
-# Alle enthalten eine einzige ausführbare Datei (self-contained, ~91 MiB) samt
-# Startmenü-Eintrag und Symbolen. Kein .NET auf dem Zielrechner nötig.
+# Alle enthalten eine einzige ausführbare Datei (self-contained, ~46 MiB – die
+# eingebettete Laufzeit ist komprimiert) samt Startmenü-Eintrag und Symbolen.
+# Kein .NET auf dem Zielrechner nötig.
 #
 #   ./package.sh                           alle Formate, fehlende Werkzeuge werden gemeldet
 #   ./package.sh --formats deb,rpm         nur bestimmte Formate
@@ -299,8 +300,21 @@ build_appimage() {
     mv "$runtime.part" "$runtime"
   fi
 
+  # Für die AppImage bewusst OHNE Kompression in der Einzeldatei: das Abbild ist
+  # schon ein komprimiertes Dateisystem (squashfs/zstd). Zweimal komprimieren
+  # bringt nichts und macht die Datei sogar größer (39,3 statt 34,1 MB).
+  local plain="$STAGE/build-appimage"
+  if [ ! -f "$plain/PixelBackup" ]; then
+    echo "  baue die Fassung ohne Einzeldatei-Kompression …"
+    dotnet publish "$REPO_ROOT/src/PixelBackup.App" \
+      -c Release -r "$RID" --self-contained true \
+      -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None \
+      -p:EnableCompressionInSingleFile=false \
+      -o "$plain" >/dev/null
+  fi
+
   local appdir="$STAGE/AppDir"
-  install -D -m 0755 "$BINARY" "$appdir/usr/bin/PixelBackup"
+  install -D -m 0755 "$plain/PixelBackup" "$appdir/usr/bin/PixelBackup"
   install -D -m 0644 "$DESKTOP" "$appdir/usr/share/applications/pixel-backup.desktop"
   install -D -m 0644 "$ICON_DIR/256x256/apps/pixel-backup.png" \
     "$appdir/usr/share/icons/hicolor/256x256/apps/pixel-backup.png"

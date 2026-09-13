@@ -169,8 +169,13 @@ erkannten Verteilung.
 Beide Systeme bekommen dieselbe Bauweise: eine eigenständige Einzeldatei
 (`PublishSingleFile` samt `IncludeNativeLibrariesForSelfExtract`, damit auch SkiaSharp und
 HarfBuzz mit in die Datei wandern). Unter Windows ist das `PixelBackup.exe`, unter Linux die
-endungslose ELF-Datei `PixelBackup` (91 MiB). Beim ersten Start entpackt die .NET-Laufzeit die
+endungslose ELF-Datei `PixelBackup` (46 MiB). Beim ersten Start entpackt die .NET-Laufzeit die
 eingebetteten nativen Bibliotheken in einen Zwischenspeicher des Benutzers.
+
+`EnableCompressionInSingleFile` komprimiert die eingebettete Laufzeit: 91 → 46 MiB unter Linux,
+96 → 46 MiB unter Windows. Bezahlt wird das mit rund einer Zehntelsekunde beim allerersten Start
+(gemessen 0,97 s statt 0,84 s bis zum Fenster, danach identisch), weil die Laufzeit einmalig in den
+Zwischenspeicher des Benutzers entpackt.
 
 `packaging/linux/package.sh` baut daraus fünf Verteilwege:
 
@@ -178,7 +183,7 @@ eingebetteten nativen Bibliotheken in einen Zwischenspeicher des Benutzers.
 | --- | --- | --- |
 | `.deb` | `dpkg-deb` | Dateien unter `/usr/lib/pixel-backup`, Starter in `/usr/bin`, Startmenü-Eintrag und Symbole; `postinst` frischt Desktop- und Symbolzwischenspeicher auf |
 | `.rpm` | `rpmbuild` | derselbe `/usr`-Baum; Nachbearbeitung und Debug-Paket sind abgeschaltet, damit die fertige Einzeldatei unverändert bleibt |
-| `.AppImage` | `mksquashfs` | Typ-2-Abbild aus AppImage-Laufzeit und zstd-Dateisystem, läuft ohne Installation |
+| `.AppImage` | `mksquashfs` | Typ-2-Abbild aus AppImage-Laufzeit und zstd-Dateisystem, läuft ohne Installation; enthält bewusst die **unkomprimierte** Einzeldatei, weil das Abbild selbst schon komprimiert ist (sonst 39 statt 34 MB) |
 | `.flatpak` | `flatpak-builder` | Bündel auf `org.freedesktop.Platform//24.08`, Freigaben für X11/Wayland, USB-Geräte und Benutzerordner; bewusst nur PNG-Symbole, weil `appstreamcli` am Ende des Baus ein SVG ohne librsvg-Lader nicht lesen kann |
 | `.tar.gz` | `tar` | portables Archiv mit kleinem Einrichtungsskript für den angemeldeten Benutzer |
 
