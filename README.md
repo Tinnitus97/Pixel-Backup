@@ -319,7 +319,8 @@ meldet Visual Studio bei jedem Avalonia-Paket „In dieser Quelle nicht verfügb
 Projektmappe öffnet, braucht also nichts einzustellen; im NuGet-Paket-Manager muss als
 Paketquelle **nuget.org** stehen.
 
-Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
+Die Oberfläche baut auf **Avalonia 12.1.2** auf (Tests mit xunit 2.9.3 und dem .NET-Test-SDK
+18.10.1). Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
 und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 218 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 

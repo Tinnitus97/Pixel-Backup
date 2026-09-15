@@ -82,7 +82,7 @@
 
           <StackPanel Orientation="Horizontal" Spacing="8">
             <TextBox Width="240"
-                     Watermark="192.168.1.50:5555"
+                     PlaceholderText="192.168.1.50:5555"
                      Text="{Binding WirelessAddress, Mode=TwoWay}" />
             <Button Content="{Binding LabelConnect}" Command="{Binding ConnectWirelessCommand}" />
             <Button Content="{Binding LabelEnableWireless}" Command="{Binding EnableWirelessCommand}" />

@@ -230,15 +230,39 @@ public sealed class ComponentService : ObservableObject
     /// <summary>Die eigentliche Abfrage – ohne eigene Sperre, damit sie auch im Sammel-Check läuft.</summary>
     private async Task CheckUpdateCoreAsync(CancellationToken ct)
     {
-        var status = NewAppStatus();
-
         try
         {
-            var result = await _updater
+            _updateCheck = await _updater
                 .CheckAsync(_session.Settings.UpdateManifestUrl, ct)
                 .ConfigureAwait(false);
 
-            _updateCheck = result;
+            RebuildApplicationStatus();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var status = NewAppStatus();
+            status.State = ComponentState.Unknown;
+            status.Message = ex.Message;
+            Application = status;
+        }
+    }
+
+    /// <summary>
+    /// Baut den Eintrag „Pixel Backup“ aus dem letzten Abfrageergebnis neu.
+    /// Nötig nach einem Sprachwechsel: die Meldung ist ein fertiger Satz und
+    /// stünde sonst weiter in der alten Sprache da.
+    /// </summary>
+    private void RebuildApplicationStatus()
+    {
+        var status = NewAppStatus();
+        var result = _updateCheck;
+
+        if (result is not null)
+        {
             status.Message = result.Describe();
 
             if (result.Error is not null)
@@ -255,15 +279,6 @@ public sealed class ComponentService : ObservableObject
             {
                 status.State = ComponentState.UpToDate;
             }
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            status.State = ComponentState.Unknown;
-            status.Message = ex.Message;
         }
 
         Application = status;
@@ -531,6 +546,8 @@ public sealed class ComponentService : ObservableObject
     /// <summary>Nach einem Sprachwechsel die Texte neu erzeugen.</summary>
     public void RefreshTexts()
     {
+        RebuildApplicationStatus();
+
         OnPropertyChanged(nameof(Adb));
         OnPropertyChanged(nameof(DeviceAccess));
         OnPropertyChanged(nameof(Application));
