@@ -361,6 +361,14 @@ public sealed class BackupService
         long bytesDone = 0;
         var itemsDone = 0;
 
+        // Der obere Fortschrittsbalken zeigt die laufende Gruppe, der untere den
+        // ganzen Lauf. Dafür je Gruppe merken, wie viel insgesamt und wie viel
+        // davon schon übertragen ist.
+        var groupTotals = itemsToCopy
+            .GroupBy(i => i.CategoryId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Sum(i => Math.Max(0, i.Size)), StringComparer.Ordinal);
+        var groupDone = new Dictionary<string, long>(StringComparer.Ordinal);
+
         result.FilesSkipped = plan.SkipCount;
 
         _log.Info(Loc.Tr($"Sicherung startet: {setDirectory}", $"Backup starting: {setDirectory}"));
@@ -394,6 +402,9 @@ public sealed class BackupService
                 var batchBytes = batch.Sum(i => Math.Max(0, i.Size));
                 var first = batch[0];
 
+                var groupTotal = groupTotals.TryGetValue(first.CategoryId, out var total) ? total : 0;
+                var groupBase = groupDone.TryGetValue(first.CategoryId, out var done) ? done : 0;
+
                 void ReportBatch(int percent) => progress?.Report(new OperationProgress
                 {
                     Phase = CategoryCatalog.DisplayNameOf(first.CategoryId),
@@ -406,6 +417,9 @@ public sealed class BackupService
                     ItemsTotal = itemsTotal,
                     BytesDone = batchBase + batchBytes * percent / 100,
                     BytesTotal = bytesTotal,
+                    // Der obere Balken zeigt die laufende Gruppe, der untere den ganzen Lauf.
+                    CurrentBytesDone = groupBase + batchBytes * percent / 100,
+                    CurrentBytesTotal = groupTotal,
                     BytesPerSecond = Speed(batchBase, stopwatch.Elapsed),
                     Elapsed = stopwatch.Elapsed
                 });
@@ -441,8 +455,9 @@ public sealed class BackupService
                 }
 
                 itemsDone += batch.Count;
-                bytesDone = batchBase + batch.Sum(i => Math.Max(0, i.Size));
+                bytesDone = batchBase + batchBytes;
                 ReportBatch(100);
+                groupDone[first.CategoryId] = groupBase + batchBytes;
             }
         }
         catch (OperationCanceledException)

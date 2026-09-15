@@ -60,6 +60,12 @@ public sealed class RestoreService
         long bytesDone = 0;
         var itemsDone = 0;
 
+        // Wie beim Sichern: der obere Balken zeigt die laufende Gruppe.
+        var groupTotals = fileEntries
+            .GroupBy(e => e.CategoryId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Sum(e => Math.Max(0, e.Size)), StringComparer.Ordinal);
+        var groupDone = new Dictionary<string, long>(StringComparer.Ordinal);
+
         _log.Info(Loc.Tr(
             $"Wiederherstellung startet: {options.Set.Name} → {serial}",
             $"Restore starting: {options.Set.Name} → {serial}"));
@@ -99,6 +105,8 @@ public sealed class RestoreService
                     ItemsTotal = itemsTotal,
                     BytesDone = bytesDone,
                     BytesTotal = bytesTotal,
+                    CurrentBytesDone = groupDone.TryGetValue(entry.CategoryId, out var groupBase) ? groupBase : 0,
+                    CurrentBytesTotal = groupTotals.TryGetValue(entry.CategoryId, out var groupTotal) ? groupTotal : 0,
                     BytesPerSecond = stopwatch.Elapsed.TotalSeconds > 0.5 ? bytesDone / stopwatch.Elapsed.TotalSeconds : 0,
                     Elapsed = stopwatch.Elapsed
                 });
@@ -155,6 +163,8 @@ public sealed class RestoreService
                 }
 
                 bytesDone += Math.Max(0, entry.Size);
+                groupDone[entry.CategoryId] =
+                    (groupDone.TryGetValue(entry.CategoryId, out var soFar) ? soFar : 0) + Math.Max(0, entry.Size);
             }
 
             // 2) Apps installieren

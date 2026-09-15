@@ -267,6 +267,16 @@ Eigenes fest.
 In der Kopfzeile liegen rechts neben „Geräte suchen“ eine Auswahl für die Sprache und ein
 Knopf für Hell/Dunkel (☀/☽) – nach dem Vorbild des DaSi-Werkzeugs. Beides wirkt sofort
 (`Localizer.LanguageChanged` bzw. `ThemeService.Apply`) und wird als feste Wahl gespeichert.
+Eine laufende Anzeige gibt es dort nicht mehr: der Fortschritt steht auf der Seite, die ihn
+erzeugt.
+
+Dort zeigen **zwei Balken** den Stand. `OperationProgress` trägt dafür neben den Gesamtzahlen
+(`BytesDone`/`BytesTotal`) die Zahlen des laufenden Schrittes (`CurrentBytesDone`/
+`CurrentBytesTotal`). `BackupService` und `RestoreService` führen dazu je Gruppe Buch, wie viel
+insgesamt ansteht und wie viel davon schon übertragen ist – der obere Balken zeigt also die
+laufende Gruppe („Fotos“), der untere den ganzen Lauf. Fehlt die Größe eines Schrittes
+(Vorbereitung, Archivierung), meldet `HasCurrentProgress` false und der obere Balken läuft
+durch, statt eine Zahl zu erfinden.
 
 Der Speicherort steht jetzt dort, wo er gebraucht wird: als Zeile auf „Sichern“ und auf
 „Wiederherstellen“. Beide Seiten schreiben über `AppSession.SetBackupRoot` – das setzt die
@@ -276,7 +286,7 @@ Satzlisten auf. Damit können Seite, Ablage und Einstellung nicht auseinanderlau
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 200 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+`dotnet test` meldet 206 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit

@@ -72,6 +72,11 @@ der Speicherort direkt über den Gruppen
 
 ![Ansicht „Sichern“ mit Speicherort](docs/screenshots/live/10-sichern-kompakt.png)
 
+**Während einer Sicherung** – zwei Balken: oben die laufende Gruppe, unten der ganze Lauf
+(Aufnahme mit Beispielwerten, hier hängt kein Telefon am Rechner)
+
+![Fortschritt mit zwei Balken](docs/screenshots/live/12-fortschritt.png)
+
 **English, hell** – dieselbe Anwendung nach zwei Klicks in der Kopfzeile
 
 ![Restore view in English, light theme](docs/screenshots/live/11-english-hell.png)
@@ -185,6 +190,10 @@ genau diesen Satz.
 
 * **Oben rechts umschaltbar** – Sprache (Deutsch/English) und Hell/Dunkel liegen in der
   Kopfzeile, nicht versteckt in den Einstellungen; beides wirkt sofort und wird gemerkt.
+* **Zwei Fortschrittsbalken** beim Sichern und Wiederherstellen: oben die laufende Gruppe
+  („Fotos 67 %“), unten der ganze Lauf („Gesamt 29 %“), dazu Dateien, Datenmenge, Tempo und
+  Restzeit. Lässt sich ein Schritt nicht beziffern (Vorbereitung, Archivierung), läuft der
+  obere Balken durch, statt eine Zahl zu erfinden.
 * **Deutsch und Englisch** – die Oberfläche startet in der **Anzeigesprache des Systems**
   (Deutsch bei einem deutschen System, sonst Englisch) und lässt sich jederzeit umschalten;
   die Umschaltung wirkt sofort, ohne Neustart.
@@ -305,7 +314,7 @@ dotnet run --project src/PixelBackup.App
 ```
 
 Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 200 grüne
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 206 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:

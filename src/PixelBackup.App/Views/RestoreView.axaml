@@ -113,9 +113,32 @@
         <StackPanel Spacing="8">
           <TextBlock Text="{Binding Progress.Phase}" FontWeight="SemiBold" />
           <TextBlock Text="{Binding Progress.CurrentItem}" Classes="hint" TextTrimming="CharacterEllipsis" />
-          <ProgressBar Height="8" Minimum="0" Maximum="100"
-                       Value="{Binding Progress.Percent}"
-                       IsIndeterminate="{Binding Progress.IsIndeterminate}" />
+          <!-- Oben die laufende Gruppe, unten der ganze Lauf -->
+          <Grid ColumnDefinitions="54,*,44" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="5">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Progress.LabelCurrent}"
+                       Classes="hint" VerticalAlignment="Center" />
+            <ProgressBar Grid.Row="0" Grid.Column="1"
+                         Height="8"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="{Binding Progress.CurrentPercent}"
+                         IsIndeterminate="{Binding Progress.CurrentIsIndeterminate}"
+                         VerticalAlignment="Center" />
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Progress.CurrentPercentText}"
+                       Classes="hint" HorizontalAlignment="Right" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Progress.LabelTotal}"
+                       FontWeight="SemiBold" VerticalAlignment="Center" />
+            <ProgressBar Grid.Row="1" Grid.Column="1"
+                         Height="12"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="{Binding Progress.Percent}"
+                         IsIndeterminate="{Binding Progress.IsIndeterminate}"
+                         VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Progress.PercentText}"
+                       FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+          </Grid>
           <Grid ColumnDefinitions="*,*,*,*">
             <TextBlock Grid.Column="0" Text="{Binding Progress.CountText}" Classes="hint" />
             <TextBlock Grid.Column="1" Text="{Binding Progress.BytesText}" Classes="hint" />

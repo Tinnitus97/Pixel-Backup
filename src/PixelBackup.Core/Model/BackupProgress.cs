@@ -18,6 +18,12 @@ public sealed class OperationProgress
 
     public long BytesTotal { get; init; }
 
+    /// <summary>Übertragene Bytes des laufenden Schrittes (Datei bzw. Stapel).</summary>
+    public long CurrentBytesDone { get; init; }
+
+    /// <summary>Größe des laufenden Schrittes; 0, wenn sie sich nicht beziffern lässt.</summary>
+    public long CurrentBytesTotal { get; init; }
+
     public double BytesPerSecond { get; init; }
 
     public TimeSpan Elapsed { get; init; }
@@ -49,6 +55,22 @@ public sealed class OperationProgress
         : "–";
 
     public string SpeedText => Humanize.Speed(BytesPerSecond);
+
+    /// <summary>Fortschritt des laufenden Schrittes in Prozent.</summary>
+    public double CurrentPercent => CurrentBytesTotal > 0
+        ? Math.Clamp(CurrentBytesDone * 100d / CurrentBytesTotal, 0, 100)
+        : 0;
+
+    /// <summary>
+    /// Lässt sich der laufende Schritt beziffern? Wenn nicht (Vorbereitung,
+    /// Archivierung, Ausleseschritte ohne Größenangabe), zeigt die Oberfläche
+    /// dafür einen laufenden Balken statt einer erfundenen Zahl.
+    /// </summary>
+    public bool HasCurrentProgress => CurrentBytesTotal > 0;
+
+    public string CurrentBytesText => CurrentBytesTotal > 0
+        ? $"{Humanize.Bytes(CurrentBytesDone)} / {Humanize.Bytes(CurrentBytesTotal)}"
+        : "–";
 
     public string CountText => $"{ItemsDone:N0} / {ItemsTotal:N0}";
 
