@@ -69,6 +69,8 @@ public sealed class RestoreViewModel : ViewModelBase
         _conflictOption = ConflictOptions[0];
 
         RefreshCommand = new RelayCommand(LoadSets);
+        BrowseSourceCommand = new AsyncRelayCommand(BrowseSourceAsync, () => IsIdle, ReportError);
+        OpenSourceCommand = new RelayCommand(() => DialogService.OpenInFileManager(BackupRoot));
         StartCommand = new AsyncRelayCommand(StartAsync, CanStart, ReportError);
         CancelCommand = new RelayCommand(() => _cancellation?.Cancel(), () => IsRunning);
         SelectAllCommand = new RelayCommand(() => SetSelection(true));
@@ -226,6 +228,47 @@ public sealed class RestoreViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
+    // ------------------------------------------------------------ Speicherort
+
+    public AsyncRelayCommand BrowseSourceCommand { get; }
+
+    public RelayCommand OpenSourceCommand { get; }
+
+    /// <summary>
+    /// Woher die Sätze kommen. Dieselbe Angabe wie beim Sichern und in den
+    /// Einstellungen – ein anderer Ordner (etwa eine externe Platte) ist damit
+    /// hier direkt wählbar.
+    /// </summary>
+    public string BackupRoot
+    {
+        get => _session.BackupRoot;
+        set
+        {
+            if (_session.SetBackupRoot(value))
+            {
+                OnPropertyChanged();
+                LoadSets();
+            }
+        }
+    }
+
+    private async Task BrowseSourceAsync()
+    {
+        var folder = await DialogService
+            .PickFolderAsync(Tr("Ordner mit den Sicherungen", "Folder holding the backups"), BackupRoot)
+            .ConfigureAwait(true);
+
+        if (folder is null)
+        {
+            return;
+        }
+
+        BackupRoot = folder;
+        StatusMessage = Sets.Count == 0
+            ? Tr($"In {BackupRoot} liegt keine Sicherung.", $"No backup found in {BackupRoot}.")
+            : Tr($"{Sets.Count} Sicherung(en) in {BackupRoot}.", $"{Sets.Count} backup(s) in {BackupRoot}.");
+    }
+
     private void LoadSets()
     {
         var previous = SelectedSet?.Directory;
@@ -353,11 +396,22 @@ public sealed class RestoreViewModel : ViewModelBase
 
     private void RaiseCommandStates()
     {
+        BrowseSourceCommand.RaiseCanExecuteChanged();
         StartCommand.RaiseCanExecuteChanged();
         CancelCommand.RaiseCanExecuteChanged();
     }
 
     #region Beschriftungen
+
+    public string LabelSourceFolder => Tr("Speicherort", "Location");
+
+    public string LabelBrowse => Tr("Auswählen …", "Choose …");
+
+    public string LabelOpenFolder => Tr("Öffnen", "Open");
+
+    public string TipSourceFolder => Tr(
+        "Ordner, in dem Pixel Backup nach Sicherungssätzen sucht – etwa eine externe Platte.",
+        "Folder Pixel Backup looks in for backup sets – an external drive, for example.");
 
     public string PageHint => Tr(
         "Sicherungssatz wählen, Gruppen auswählen und auf das verbundene Gerät zurückspielen.",

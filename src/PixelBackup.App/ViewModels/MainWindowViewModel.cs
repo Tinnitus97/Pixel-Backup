@@ -4,6 +4,7 @@ using PixelBackup.App.Services;
 using PixelBackup.Core.Adb;
 using PixelBackup.Core.Localization;
 using PixelBackup.Core.Diagnostics;
+using PixelBackup.Core.Services;
 
 namespace PixelBackup.App.ViewModels;
 
@@ -12,6 +13,7 @@ public sealed class MainWindowViewModel : ObservableObject
 {
     private readonly AppSession _session;
     private ViewModelBase _selectedPage;
+    private int _languageIndex;
 
     public MainWindowViewModel(AppSession session)
     {
@@ -35,6 +37,9 @@ public sealed class MainWindowViewModel : ObservableObject
             () => _session.RefreshDevicesAsync(),
             () => _session.AdbAvailable);
 
+        ToggleThemeCommand = new RelayCommand(ToggleTheme);
+        _languageIndex = Localizer.I.Lang == AppLanguage.En ? 1 : 0;
+
         _session.PropertyChanged += (_, e) =>
         {
             switch (e.PropertyName)
@@ -56,7 +61,11 @@ public sealed class MainWindowViewModel : ObservableObject
         };
 
         _session.DeviceConnected += OnDeviceConnected;
-        Localizer.I.LanguageChanged += () => OnPropertyChanged(string.Empty);
+        Localizer.I.LanguageChanged += () =>
+        {
+            _languageIndex = Localizer.I.Lang == AppLanguage.En ? 1 : 0;
+            OnPropertyChanged(string.Empty);
+        };
     }
 
     public AppSession Session => _session;
@@ -78,6 +87,49 @@ public sealed class MainWindowViewModel : ObservableObject
     public SettingsViewModel Settings { get; }
 
     public AsyncRelayCommand RefreshDevicesCommand { get; }
+
+    // --------------------------------------------- Sprache und Erscheinungsbild
+
+    /// <summary>Beide Sprachen für die Auswahl in der Kopfzeile.</summary>
+    public IReadOnlyList<string> Languages { get; } = new[] { "Deutsch", "English" };
+
+    /// <summary>Umschalten zwischen hell und dunkel – ohne Umweg über die Einstellungen.</summary>
+    public RelayCommand ToggleThemeCommand { get; }
+
+    /// <summary>Sonne bei dunklem Bild (dann wird es hell), sonst Mond.</summary>
+    public string ThemeIcon => ThemeService.IsDark ? "\u2600" : "\u263D";
+
+    public string ThemeTooltip => Loc.Tr("Hell oder dunkel umschalten", "Switch light or dark");
+
+    public string LanguageTooltip => Loc.Tr("Sprache der Oberfläche", "Interface language");
+
+    public int SelectedLanguageIndex
+    {
+        get => _languageIndex;
+        set
+        {
+            if (!SetProperty(ref _languageIndex, value))
+            {
+                return;
+            }
+
+            // Feste Wahl: sie soll auch nach einem Neustart gelten.
+            _session.Settings.Language = value == 1 ? LanguageSetting.English : LanguageSetting.German;
+            _session.ApplyLanguage();
+            _session.SaveSettings();
+        }
+    }
+
+    private void ToggleTheme()
+    {
+        var dark = ThemeService.IsDark;
+        _session.Settings.Theme = dark ? AppTheme.Light : AppTheme.Dark;
+        _session.ApplyTheme();
+        _session.SaveSettings();
+
+        OnPropertiesChanged(nameof(ThemeIcon));
+        Settings.RefreshTexts();
+    }
 
     public ViewModelBase SelectedPage
     {

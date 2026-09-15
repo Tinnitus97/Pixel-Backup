@@ -41,6 +41,7 @@ modules:
       - install -Dm755 pixel-backup.sh /app/bin/pixel-backup
       - install -Dm644 io.github.tinnitus97.PixelBackup.desktop
         /app/share/applications/io.github.tinnitus97.PixelBackup.desktop
+      - install -Dm644 pixel-backup.1 /app/share/man/man1/pixel-backup.1
       - install -Dm644 io.github.tinnitus97.PixelBackup.metainfo.xml
         /app/share/metainfo/io.github.tinnitus97.PixelBackup.metainfo.xml
       - install -Dm644 icon-256.png

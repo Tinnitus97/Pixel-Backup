@@ -1,0 +1,221 @@
+.\" Handbuchseite für Pixel Backup.
+.\" Textfassung erzeugen: packaging/man/render.sh
+.TH PIXEL-BACKUP 1 "2026-09-15" "Pixel Backup 0.9.0" "Benutzerbefehle"
+.SH NAME
+pixel\-backup \- Sicherung und Wiederherstellung für Android\-Geräte
+.SH ÜBERSICHT
+.B pixel\-backup
+.RI [ BEFEHL ]
+.RI [ OPTIONEN ]
+.SH BESCHREIBUNG
+.B Pixel Backup
+sichert Fotos, Videos, Musik, Dokumente, Apps sowie Kontakte, Nachrichten und
+Termine eines Android\-Gerätes auf den Rechner und spielt sie wieder zurück.
+Die gesamte Gerätekommunikation läuft über
+.BR adb (1);
+auf dem Telefon muss nichts installiert werden.
+.PP
+Ohne Befehl startet die grafische Oberfläche. Mit einem Befehl arbeitet das
+Programm auf der Kommandozeile \- für Skripte, Aufgabenplanung,
+.BR cron (8)
+und Rechner ohne grafische Sitzung.
+.PP
+Die Sicherungen sind gewöhnliche Dateien: Fotos bleiben Fotos, Dokumente
+bleiben Dokumente. Jeder Sicherungssatz enthält eine
+.I manifest.json
+mit allen Einträgen samt Größe, Zeitstempel und (auf Wunsch) SHA\-256.
+.SH BEFEHLE
+.TP
+.B devices
+Listet die verbundenen Geräte mit Seriennummer und Zustand auf.
+.TP
+.B info
+Zeigt Angaben zum Gerät: Android\-Fassung, Akkustand, Speicher und ob
+Root\-Rechte verfügbar sind.
+.TP
+.B categories
+Listet die Gruppen mit ihrer Kennung auf. Die Kennungen sind die Werte für
+.BR \-\-categories .
+Ein Stern kennzeichnet die voreingestellten Gruppen.
+.TP
+.B backup
+Legt eine Sicherung an. Ohne
+.B \-\-categories
+werden die empfohlenen Gruppen gesichert, mit
+.B \-\-all
+alle.
+.TP
+.B restore
+Spielt einen Sicherungssatz auf ein Gerät zurück. Verlangt
+.B \-\-yes
+oder
+.BR \-\-dry\-run ,
+weil dabei Daten auf dem Gerät entstehen.
+.TP
+.B list
+Listet die Sicherungssätze im Speicherort auf.
+.TP
+.B verify
+Prüft einen Satz gegen die gespeicherten Prüfsummen und meldet fehlende,
+veränderte oder unvollständige Dateien.
+.TP
+.B components
+Prüft die Android\-Plattform\-Tools (adb) und den Gerätezugang (unter Windows
+den USB\-Treiber, unter Linux die udev\-Regeln). Mit
+.B \-\-install
+werden fehlende Plattform\-Tools eingerichtet.
+.TP
+.B update
+Prüft, ob es eine neuere Fassung gibt. Mit
+.B \-\-install \-\-yes
+wird sie geladen, ihre Prüfsumme verglichen und eingespielt \- je nach
+Einbauart als Dateitausch oder über die Paketverwaltung.
+.TP
+.B gui
+Startet die grafische Oberfläche (dasselbe wie ein Aufruf ohne Argumente).
+.TP
+.BR help ", " version ", " manual
+Kurze Hilfe, Fassungsnummer, vollständiges Handbuch.
+.SH OPTIONEN
+.TP
+.BR \-d ", " \-\-device " \fISERIENNUMMER\fR"
+Wählt das Gerät. Ohne Angabe wird das einzige verbundene verwendet; sind
+mehrere verbunden, bricht der Aufruf mit einer Liste ab.
+.TP
+.BR \-o ", " \-\-output " \fIORDNER\fR"
+Speicherort der Sicherungen. Ohne Angabe gilt der eingestellte Ordner.
+.TP
+.BR \-c ", " \-\-categories " \fIA,B,C\fR"
+Gruppen, durch Komma getrennt (siehe
+.BR categories ).
+.TP
+.BR \-a ", " \-\-all
+Alle Gruppen.
+.TP
+.BR \-s ", " \-\-set " \fINAME\fR|\fIPFAD\fR"
+Sicherungssatz für
+.BR restore " und " verify .
+Ohne Angabe der jüngste.
+.TP
+.BR \-i ", " \-\-incremental
+Aktualisiert den vorhandenen Satz des Gerätes, statt einen neuen anzulegen.
+Übertragen wird nur, was sich geändert hat.
+.TP
+.B \-\-no\-hashes
+Ohne SHA\-256 sichern. Schneller, aber
+.B verify
+kann dann nur Größe und Vorhandensein prüfen.
+.TP
+.B \-\-archive
+Legt nach der Sicherung ein Archiv des Satzes an.
+.TP
+.BI \-\-password " KENNWORT"
+Verschlüsselt das Archiv (AES\-256\-GCM). Ohne Kennwort verlangt
+.B \-\-archive
+zusätzlich
+.BR \-\-yes .
+.TP
+.BI \-\-conflict " skip|overwrite|both"
+Wie mit Dateien umgegangen wird, die es am Gerät schon gibt:
+überspringen (Vorgabe), überschreiben oder beide behalten.
+.TP
+.B \-\-dry\-run
+Plant den Lauf und meldet, was geschehen würde, ohne etwas zu schreiben.
+.TP
+.BR \-y ", " \-\-yes
+Beantwortet Rückfragen mit ja. Für
+.B restore
+und für
+.B update \-\-install
+erforderlich.
+.TP
+.B \-\-json
+Gibt das Ergebnis als JSON aus \- gedacht für Skripte.
+.TP
+.BR \-q ", " \-\-quiet
+Nur das Nötigste ausgeben.
+.TP
+.BR \-l ", " \-\-language " de|en"
+Sprache der Ausgabe. Ohne Angabe gilt die Einstellung der Anwendung,
+sonst die Anzeigesprache des Systems.
+.TP
+.B \-\-install
+Bei
+.B components
+und
+.BR update :
+einrichten statt nur prüfen.
+.SH RÜCKGABEWERTE
+.TP
+.B 0
+Alles in Ordnung.
+.TP
+.B 1
+Fehler \- etwa fehlgeschlagene Dateien oder eine Prüfung mit Beanstandungen.
+.TP
+.B 2
+Falscher Aufruf \- unbekannte Option, fehlender Wert, fehlendes
+.BR \-\-yes .
+.TP
+.B 3
+Kein Gerät verbunden oder nicht freigegeben.
+.TP
+.B 4
+adb wurde nicht gefunden.
+.TP
+.B 130
+Abgebrochen.
+.SH DATEIEN
+.TP
+.I ~/.config/PixelBackup/settings.json
+Einstellungen (Linux, macOS). Unter Windows:
+.IR %APPDATA%\\PixelBackup\\settings.json .
+.TP
+.I ~/.config/PixelBackup/logs/
+Protokolldateien, eine je Tag.
+.TP
+.I ~/PixelBackup/
+Voreingestellter Speicherort der Sicherungen.
+.TP
+.I manifest.json
+Inhaltsverzeichnis eines Sicherungssatzes.
+.SH BEISPIELE
+.TP
+Verbundene Geräte anzeigen:
+.B pixel\-backup devices
+.TP
+Fotos und Videos auf eine externe Platte sichern:
+.B pixel\-backup backup \-\-categories photos,videos \-\-output /mnt/platte
+.TP
+Täglich alles sichern, nur Geändertes übertragen (für cron):
+.B pixel\-backup backup \-\-all \-\-incremental \-\-quiet
+.TP
+Sicherungen als JSON auflisten:
+.B pixel\-backup list \-\-json
+.TP
+Einen Satz zurückspielen, ohne vorhandene Dateien zu überschreiben:
+.B pixel\-backup restore \-s 2026\-09\-15_Pixel\-8 \-\-conflict skip \-y
+.TP
+Einen Satz prüfen:
+.B pixel\-backup verify \-\-set 2026\-09\-15_Pixel\-8
+.SH UMGEBUNG
+.TP
+.B DISPLAY, WAYLAND_DISPLAY
+Bestimmen, ob die Oberfläche starten kann. Für die Kommandozeile werden sie
+nicht gebraucht.
+.SH HINWEISE
+Ab Android 12 lassen sich die Daten installierter Apps ohne Root\-Rechte nicht
+mehr auslesen; Dateien, Apps, Kontakte, Nachrichten und Termine schon.
+Kontakte, Nachrichten, Anrufliste und Kalender werden zusätzlich als
+Importdateien (vcf, xml, ics) abgelegt, die sich auf einem neuen Gerät
+einlesen lassen.
+.SH SIEHE AUCH
+.BR adb (1),
+.BR cron (8)
+.PP
+Vollständige Anleitung:
+.UR https://github.com/Tinnitus97/Pixel\-Backup
+.UE
+.SH FEHLER MELDEN
+.UR https://github.com/Tinnitus97/Pixel\-Backup/issues
+.UE

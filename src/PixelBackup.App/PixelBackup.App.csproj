@@ -28,6 +28,11 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets/**" />
+
+    <!-- Die Textfassung der Handbuchseite steckt in der Anwendung: so sagt
+         der Aufruf mit "manual" unter Windows dasselbe wie "man pixel-backup"
+         unter Linux. Erzeugt wird sie mit packaging/man/render.sh. -->
+    <EmbeddedResource Include="Cli/pixel-backup.1.txt" />
   </ItemGroup>
 
   <ItemGroup>

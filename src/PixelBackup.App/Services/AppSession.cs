@@ -339,6 +339,32 @@ public sealed class AppSession : ObservableObject, IDisposable
 
     public void NotifyBackupsChanged() => Dispatcher.UIThread.Post(() => BackupsChanged?.Invoke());
 
+    /// <summary>Wo die Sicherungen liegen – dieselbe Angabe wie in den Einstellungen.</summary>
+    public string BackupRoot => Settings.BackupRoot;
+
+    /// <summary>
+    /// Stellt den Speicherort um. Bewusst an einer Stelle, damit die Seiten
+    /// „Sichern“, „Wiederherstellen“ und „Einstellungen“ nie auseinanderlaufen:
+    /// die Ablage wird mitgezogen, die Einstellung gespeichert und die
+    /// Satzlisten aufgefrischt.
+    /// </summary>
+    public bool SetBackupRoot(string? path)
+    {
+        var value = path?.Trim();
+        if (string.IsNullOrEmpty(value) || string.Equals(value, Settings.BackupRoot, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        Settings.BackupRoot = value;
+        SaveSettings();
+        NotifyBackupsChanged();
+        OnPropertyChanged(nameof(BackupRoot));
+
+        Log.Info(Loc.Tr($"Speicherort der Sicherungen: {value}", $"Backup location: {value}"));
+        return true;
+    }
+
     // ----------------------------------------------------------- Einstellungen
 
     public void SaveSettings()

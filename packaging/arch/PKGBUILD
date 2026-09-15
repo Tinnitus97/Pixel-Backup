@@ -60,5 +60,6 @@ package() {
       "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/pixel-backup.png"
   done
 
+  install -Dm644 packaging/man/pixel-backup.1 "$pkgdir/usr/share/man/man1/pixel-backup.1"
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
 }

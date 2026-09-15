@@ -196,6 +196,33 @@ läuft es in der CI). Ohne diese Option wird ein Format, dessen Werkzeug fehlt, 
 Ende benannt. Für Arch liegt zusätzlich ein PKGBUILD bereit, das aus dem Git-Stand baut und dabei
 auch die Tests laufen lässt.
 
+## Kommandozeile
+
+`src/PixelBackup.App/Cli/` enthält drei Teile:
+
+* **`CommandLine`** wertet die Argumente aus – eine reine Funktion ohne Umgebung, Gerät oder
+  Oberfläche, und damit vollständig prüfbar. Befehle gibt es auf Deutsch und Englisch
+  (`backup`/`sichern`), Optionen kurz und lang (`-d`/`--device`), mit Leerzeichen oder
+  Gleichheitszeichen. Ohne Argumente kommt `CliCommand.Gui` zurück – ein Doppelklick startet
+  also weiterhin das Fenster.
+* **`CliRunner`** führt den Befehl mit denselben Diensten aus, die auch die Oberfläche
+  verwendet (`BackupService`, `RestoreService`, `VerificationService`, `UpdateService` …).
+  Fortschritt geht zeilenweise auf die Ausgabe, `--json` liefert stattdessen ein Objekt je
+  Befehl. Die Rückgabewerte sind festgelegt (0/1/2/3/4/130), damit Skripte sie auswerten können.
+* **`CliHelp`** hält die kurze Hilfe in beiden Sprachen und liefert das Handbuch aus einer
+  eingebetteten Textfassung der Handbuchseite.
+
+`Program.Main` entscheidet vor allem anderen: Befehl → Kommandozeile, sonst Oberfläche. Unter
+Windows ist die Anwendung ein Fensterprogramm (`WinExe`) und hängt an keiner Konsole; deshalb
+holt sich `AttachToConsole` über `AttachConsole(ATTACH_PARENT_PROCESS)` die Konsole des
+Aufrufers und öffnet die Ströme neu. Ohne Konsole (Doppelklick) bleibt alles wie bisher.
+
+Die Handbuchseite `packaging/man/pixel-backup.1` ist die einzige Quelle: `render.sh` erzeugt
+daraus mit `mandoc` (oder `groff`) die Textfassung, die als eingebettete Ressource in der
+Anwendung landet und unter Windows zusätzlich als `HANDBUCH.txt` neben der EXE liegt. Alle
+Linux-Pakete installieren die Seite nach `/usr/share/man/man1`. Ein Test vergleicht Hilfe,
+Handbuchseite und Textfassung mit der Befehlsliste, damit nichts auseinanderläuft.
+
 ## Versionscheck und Updater
 
 Drei Bausteine, alle im Kern und damit ohne Oberfläche prüfbar:
@@ -229,10 +256,27 @@ Linux-Läufer alle sieben Dateien, bildet `SHA256SUMS`, erzeugt mit
 `packaging/make-update-manifest.sh` die Datei `update.json` und hängt alles an die
 Veröffentlichung.
 
+## Oberfläche: Maße und Umschalter
+
+Das Fenster ist 1180 × 720 groß (mindestens 940 × 520). Die Grundschrift steht auf 12,5 statt
+Avalonias 14, Karten haben 11 statt 16 Pixel Innenabstand, Bedienelemente 28 statt 32 Pixel
+Höhe – dadurch passen auf die Seite „Sichern“ sechs Gruppen statt vier, ohne dass es gedrängt
+wirkt. Die Maße stehen als wenige Regeln in `App.axaml`; einzelne Ansichten legen nichts
+Eigenes fest.
+
+In der Kopfzeile liegen rechts neben „Geräte suchen“ eine Auswahl für die Sprache und ein
+Knopf für Hell/Dunkel (☀/☽) – nach dem Vorbild des DaSi-Werkzeugs. Beides wirkt sofort
+(`Localizer.LanguageChanged` bzw. `ThemeService.Apply`) und wird als feste Wahl gespeichert.
+
+Der Speicherort steht jetzt dort, wo er gebraucht wird: als Zeile auf „Sichern“ und auf
+„Wiederherstellen“. Beide Seiten schreiben über `AppSession.SetBackupRoot` – das setzt die
+Einstellung, zieht die Ablage (`BackupRepository.Root`) mit, speichert und frischt die
+Satzlisten auf. Damit können Seite, Ablage und Einstellung nicht auseinanderlaufen.
+
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 154 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+`dotnet test` meldet 200 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit

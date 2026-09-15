@@ -76,6 +76,7 @@ BINARY="$STAGE/build/PixelBackup"
 ICON_DIR="$REPO_ROOT/packaging/linux/icons/hicolor"
 DESKTOP="$REPO_ROOT/packaging/linux/pixel-backup.desktop"
 SVG="$REPO_ROOT/packaging/pixel-backup.svg"
+MANPAGE="$REPO_ROOT/packaging/man/pixel-backup.1"
 
 # Legt den üblichen /usr-Baum unterhalb von $1 an (für deb und rpm).
 stage_usr_tree() {
@@ -83,6 +84,9 @@ stage_usr_tree() {
 
   install -D -m 0755 "$BINARY" "$root/usr/lib/pixel-backup/PixelBackup"
   install -D -m 0644 "$DESKTOP" "$root/usr/share/applications/pixel-backup.desktop"
+  # Handbuchseite: "man pixel-backup"
+  install -D -m 0644 "$MANPAGE" "$root/usr/share/man/man1/pixel-backup.1"
+  gzip -9nf "$root/usr/share/man/man1/pixel-backup.1"
   install -D -m 0644 "$SVG" "$root/usr/share/icons/hicolor/scalable/apps/pixel-backup.svg"
 
   for size in 16 24 32 48 64 128 256; do
@@ -105,6 +109,8 @@ build_tar() {
   install -D -m 0644 "$DESKTOP" "$root/pixel-backup.desktop"
   install -D -m 0644 "$SVG" "$root/pixel-backup.svg"
   install -D -m 0644 "$REPO_ROOT/README.md" "$root/README.md"
+  install -D -m 0644 "$MANPAGE" "$root/pixel-backup.1"
+  install -D -m 0644 "$REPO_ROOT/packaging/man/pixel-backup.1.txt" "$root/HANDBUCH.txt"
   for size in 48 128 256; do
     install -D -m 0644 "$ICON_DIR/${size}x${size}/apps/pixel-backup.png" "$root/icons/pixel-backup-${size}.png"
   done
@@ -251,6 +257,7 @@ cp -a $root/. %{buildroot}/
 %files
 /usr/bin/pixel-backup
 /usr/lib/pixel-backup/PixelBackup
+/usr/share/man/man1/pixel-backup.1.gz
 /usr/share/applications/pixel-backup.desktop
 /usr/share/icons/hicolor/*/apps/pixel-backup.*
 
@@ -323,6 +330,7 @@ build_appimage() {
   install -m 0644 "$DESKTOP" "$appdir/pixel-backup.desktop"
   install -m 0644 "$ICON_DIR/256x256/apps/pixel-backup.png" "$appdir/pixel-backup.png"
   install -m 0644 "$SVG" "$appdir/pixel-backup.svg"
+  install -D -m 0644 "$MANPAGE" "$appdir/usr/share/man/man1/pixel-backup.1"
 
   cat > "$appdir/AppRun" <<'APPRUN'
 #!/bin/sh
@@ -360,6 +368,7 @@ build_flatpak() {
   install -m 0755 "$BINARY" "$src/PixelBackup"
   install -m 0644 "$REPO_ROOT/packaging/flatpak/$APP_ID.metainfo.xml" "$src/"
   install -m 0644 "$REPO_ROOT/packaging/flatpak/$APP_ID.yml" "$src/"
+  install -m 0644 "$MANPAGE" "$src/pixel-backup.1"
   # Kein SVG: appstreamcli kann es im Bau-Behälter nicht lesen (siehe Bauanleitung).
   for size in 48 64 128 256; do
     install -m 0644 "$ICON_DIR/${size}x${size}/apps/pixel-backup.png" "$src/icon-${size}.png"

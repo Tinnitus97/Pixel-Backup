@@ -50,6 +50,9 @@ public sealed class BackupViewModel : ViewModelBase
         AnalyzeCommand = new AsyncRelayCommand(AnalyzeAsync, CanOperate, ReportError);
         StartCommand = new AsyncRelayCommand(StartAsync, () => CanOperate() && AnySelected, ReportError);
         CancelCommand = new RelayCommand(() => _cancellation?.Cancel(), () => IsRunning);
+
+        BrowseTargetCommand = new AsyncRelayCommand(BrowseTargetAsync, () => IsIdle, ReportError);
+        OpenTargetCommand = new RelayCommand(() => DialogService.OpenInFileManager(BackupRoot));
         SelectAllCommand = new RelayCommand(() => SetSelection(_ => true));
         SelectNoneCommand = new RelayCommand(() => SetSelection(_ => false));
         SelectRecommendedCommand = new RelayCommand(() => SetSelection(c => c.Category.SelectedByDefault));
@@ -346,7 +349,7 @@ public sealed class BackupViewModel : ViewModelBase
 
             var options = new BackupOptions
             {
-                BackupRoot = _session.Settings.BackupRoot,
+                BackupRoot = _session.BackupRoot,
                 Incremental = Incremental && target is not null,
                 TargetSet = target,
                 ComputeHashes = ComputeHashes,
@@ -496,12 +499,48 @@ public sealed class BackupViewModel : ViewModelBase
         }
     }
 
+    // ------------------------------------------------------------ Speicherort
+
+    public AsyncRelayCommand BrowseTargetCommand { get; }
+
+    public RelayCommand OpenTargetCommand { get; }
+
+    /// <summary>
+    /// Wohin gesichert wird. Dieselbe Angabe wie in den Einstellungen – hier
+    /// steht sie dort, wo sie gebraucht wird.
+    /// </summary>
+    public string BackupRoot
+    {
+        get => _session.BackupRoot;
+        set
+        {
+            if (_session.SetBackupRoot(value))
+            {
+                OnPropertyChanged();
+                UpdateTargetDescription();
+            }
+        }
+    }
+
+    private async Task BrowseTargetAsync()
+    {
+        var folder = await DialogService
+            .PickFolderAsync(Tr("Ordner für die Sicherungen", "Folder for the backups"), BackupRoot)
+            .ConfigureAwait(true);
+
+        if (folder is not null)
+        {
+            BackupRoot = folder;
+            StatusMessage = Tr($"Zielordner: {BackupRoot}", $"Target folder: {BackupRoot}");
+        }
+    }
+
     private void UpdateTargetDescription()
     {
         var serial = _session.SelectedDevice?.Serial;
         if (serial is null)
         {
-            TargetDescription = Tr("Zielordner: ", "Target folder: ") + _session.Settings.BackupRoot;
+            TargetDescription = Tr("Zielordner: ", "Target folder: ") + _session.BackupRoot;
             return;
         }
 
@@ -509,18 +548,29 @@ public sealed class BackupViewModel : ViewModelBase
         TargetDescription = Incremental && latest is not null
             ? Tr($"Aktualisiert den vorhandenen Satz „{latest.Name}“ vom {latest.UpdatedText} ({latest.SizeText}).",
                  $"Updates the existing set \"{latest.Name}\" from {latest.UpdatedText} ({latest.SizeText}).")
-            : Tr("Legt einen neuen Sicherungssatz unter " + _session.Settings.BackupRoot + " an.",
-                 "Creates a new backup set under " + _session.Settings.BackupRoot + ".");
+            : Tr("Legt einen neuen Sicherungssatz unter " + _session.BackupRoot + " an.",
+                 "Creates a new backup set under " + _session.BackupRoot + ".");
     }
 
     private void RaiseCommandStates()
     {
+        BrowseTargetCommand.RaiseCanExecuteChanged();
         AnalyzeCommand.RaiseCanExecuteChanged();
         StartCommand.RaiseCanExecuteChanged();
         CancelCommand.RaiseCanExecuteChanged();
     }
 
     #region Beschriftungen
+
+    public string LabelTargetFolder => Tr("Speicherort", "Location");
+
+    public string LabelBrowse => Tr("Auswählen …", "Choose …");
+
+    public string LabelOpenFolder => Tr("Öffnen", "Open");
+
+    public string TipTargetFolder => Tr(
+        "Hierhin legt Pixel Backup die Sicherungssätze. Die Angabe gilt auch für „Wiederherstellen“ und „Sicherungen“.",
+        "This is where Pixel Backup puts the backup sets. It also applies to \"Restore\" and \"Backups\".");
 
     public string PageHint => Tr(
         "Gruppen auswählen, analysieren und die Sicherung starten. Fotos, Videos, Apps und mehr landen als lesbare Dateien auf dem PC.",

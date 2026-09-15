@@ -32,6 +32,13 @@ dotnet publish (Join-Path $root "src\PixelBackup.App") `
 
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+# Handbuch beilegen: unter Windows gibt es kein "man", die Textfassung tut es auch.
+$manual = Join-Path $root "packaging\man\pixel-backup.1.txt"
+if (Test-Path $manual) {
+    Copy-Item $manual (Join-Path (Join-Path $root $Output) "HANDBUCH.txt") -Force
+}
+
 Write-Host ""
 Write-Host "Fertig: $(Join-Path $root $Output)\PixelBackup.exe" -ForegroundColor Green
+Write-Host "Kommandozeile: PixelBackup.exe --help   (Handbuch: PixelBackup.exe manual)"
 Write-Host "adb wird beim ersten Start selbst nachgeladen, falls es fehlt."

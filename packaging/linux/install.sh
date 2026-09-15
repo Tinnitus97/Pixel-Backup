@@ -41,6 +41,7 @@ if [ "$MODE" = "system" ]; then
   BIN_DIR="/usr/local/bin"
   DESKTOP_DIR="/usr/share/applications"
   ICON_ROOT="/usr/share/icons/hicolor"
+  MAN_DIR="/usr/share/man/man1"
   SUDO=""
   [ "$(id -u)" -eq 0 ] || SUDO="sudo"
 else
@@ -48,6 +49,7 @@ else
   BIN_DIR="$HOME/.local/bin"
   DESKTOP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
   ICON_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
+  MAN_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/man/man1"
   SUDO=""
 fi
 
@@ -78,6 +80,10 @@ for size in 16 24 32 48 64 128 256; do
   $SUDO mkdir -p "$ICON_ROOT/${size}x${size}/apps"
   $SUDO install -m 0644 "$src" "$ICON_ROOT/${size}x${size}/apps/pixel-backup.png"
 done
+
+# Handbuchseite: danach beantwortet "man pixel-backup" alle Fragen zur Kommandozeile.
+$SUDO mkdir -p "$MAN_DIR"
+$SUDO install -m 0644 "$REPO_ROOT/packaging/man/pixel-backup.1" "$MAN_DIR/pixel-backup.1"
 
 command -v update-desktop-database >/dev/null 2>&1 && $SUDO update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
 command -v gtk-update-icon-cache   >/dev/null 2>&1 && $SUDO gtk-update-icon-cache -q "$ICON_ROOT" >/dev/null 2>&1 || true

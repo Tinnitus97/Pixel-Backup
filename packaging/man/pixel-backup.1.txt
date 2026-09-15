@@ -1,0 +1,181 @@
+PIXEL-BACKUP(1)                      Benutzerbefehle                     PIXEL-BACKUP(1)
+
+NAME
+       pixel-backup - Sicherung und Wiederherstellung für Android-Geräte
+
+ÜBERSICHT
+       pixel-backup [BEFEHL] [OPTIONEN]
+
+BESCHREIBUNG
+       Pixel Backup sichert Fotos, Videos, Musik, Dokumente, Apps sowie Kontakte,
+       Nachrichten und Termine eines Android-Gerätes auf den Rechner und spielt sie
+       wieder zurück.  Die gesamte Gerätekommunikation läuft über adb(1); auf dem
+       Telefon muss nichts installiert werden.
+
+       Ohne Befehl startet die grafische Oberfläche. Mit einem Befehl arbeitet das
+       Programm auf der Kommandozeile - für Skripte, Aufgabenplanung, cron(8) und
+       Rechner ohne grafische Sitzung.
+
+       Die Sicherungen sind gewöhnliche Dateien: Fotos bleiben Fotos, Dokumente bleiben
+       Dokumente. Jeder Sicherungssatz enthält eine manifest.json mit allen Einträgen
+       samt Größe, Zeitstempel und (auf Wunsch) SHA-256.
+
+BEFEHLE
+       devices
+              Listet die verbundenen Geräte mit Seriennummer und Zustand auf.
+
+       info   Zeigt Angaben zum Gerät: Android-Fassung, Akkustand, Speicher und ob
+              Root-Rechte verfügbar sind.
+
+       categories
+              Listet die Gruppen mit ihrer Kennung auf. Die Kennungen sind die Werte für
+              --categories.  Ein Stern kennzeichnet die voreingestellten Gruppen.
+
+       backup Legt eine Sicherung an. Ohne --categories werden die empfohlenen Gruppen
+              gesichert, mit --all alle.
+
+       restore
+              Spielt einen Sicherungssatz auf ein Gerät zurück. Verlangt --yes oder
+              --dry-run, weil dabei Daten auf dem Gerät entstehen.
+
+       list   Listet die Sicherungssätze im Speicherort auf.
+
+       verify Prüft einen Satz gegen die gespeicherten Prüfsummen und meldet fehlende,
+              veränderte oder unvollständige Dateien.
+
+       components
+              Prüft die Android-Plattform-Tools (adb) und den Gerätezugang (unter
+              Windows den USB-Treiber, unter Linux die udev-Regeln). Mit --install
+              werden fehlende Plattform-Tools eingerichtet.
+
+       update Prüft, ob es eine neuere Fassung gibt. Mit --install --yes wird sie
+              geladen, ihre Prüfsumme verglichen und eingespielt - je nach Einbauart als
+              Dateitausch oder über die Paketverwaltung.
+
+       gui    Startet die grafische Oberfläche (dasselbe wie ein Aufruf ohne Argumente).
+
+       help, version, manual
+              Kurze Hilfe, Fassungsnummer, vollständiges Handbuch.
+
+OPTIONEN
+       -d, --device SERIENNUMMER
+              Wählt das Gerät. Ohne Angabe wird das einzige verbundene verwendet; sind
+              mehrere verbunden, bricht der Aufruf mit einer Liste ab.
+
+       -o, --output ORDNER
+              Speicherort der Sicherungen. Ohne Angabe gilt der eingestellte Ordner.
+
+       -c, --categories A,B,C
+              Gruppen, durch Komma getrennt (siehe categories).
+
+       -a, --all
+              Alle Gruppen.
+
+       -s, --set NAME|PFAD
+              Sicherungssatz für restore und verify.  Ohne Angabe der jüngste.
+
+       -i, --incremental
+              Aktualisiert den vorhandenen Satz des Gerätes, statt einen neuen
+              anzulegen.  Übertragen wird nur, was sich geändert hat.
+
+       --no-hashes
+              Ohne SHA-256 sichern. Schneller, aber verify kann dann nur Größe und
+              Vorhandensein prüfen.
+
+       --archive
+              Legt nach der Sicherung ein Archiv des Satzes an.
+
+       --password KENNWORT
+              Verschlüsselt das Archiv (AES-256-GCM). Ohne Kennwort verlangt --archive
+              zusätzlich --yes.
+
+       --conflict skip|overwrite|both
+              Wie mit Dateien umgegangen wird, die es am Gerät schon gibt: überspringen
+              (Vorgabe), überschreiben oder beide behalten.
+
+       --dry-run
+              Plant den Lauf und meldet, was geschehen würde, ohne etwas zu schreiben.
+
+       -y, --yes
+              Beantwortet Rückfragen mit ja. Für restore und für update --install
+              erforderlich.
+
+       --json Gibt das Ergebnis als JSON aus - gedacht für Skripte.
+
+       -q, --quiet
+              Nur das Nötigste ausgeben.
+
+       -l, --language de|en
+              Sprache der Ausgabe. Ohne Angabe gilt die Einstellung der Anwendung, sonst
+              die Anzeigesprache des Systems.
+
+       --install
+              Bei components und update: einrichten statt nur prüfen.
+
+RÜCKGABEWERTE
+       0      Alles in Ordnung.
+
+       1      Fehler - etwa fehlgeschlagene Dateien oder eine Prüfung mit
+              Beanstandungen.
+
+       2      Falscher Aufruf - unbekannte Option, fehlender Wert, fehlendes --yes.
+
+       3      Kein Gerät verbunden oder nicht freigegeben.
+
+       4      adb wurde nicht gefunden.
+
+       130    Abgebrochen.
+
+DATEIEN
+       ~/.config/PixelBackup/settings.json
+              Einstellungen (Linux, macOS). Unter Windows:
+              %APPDATA%PixelBackupttings.json.
+
+       ~/.config/PixelBackup/logs/
+              Protokolldateien, eine je Tag.
+
+       ~/PixelBackup/
+              Voreingestellter Speicherort der Sicherungen.
+
+       manifest.json
+              Inhaltsverzeichnis eines Sicherungssatzes.
+
+BEISPIELE
+       Verbundene Geräte anzeigen:
+              pixel-backup devices
+
+       Fotos und Videos auf eine externe Platte sichern:
+              pixel-backup backup --categories photos,videos --output /mnt/platte
+
+       Täglich alles sichern, nur Geändertes übertragen (für cron):
+              pixel-backup backup --all --incremental --quiet
+
+       Sicherungen als JSON auflisten:
+              pixel-backup list --json
+
+       Einen Satz zurückspielen, ohne vorhandene Dateien zu überschreiben:
+              pixel-backup restore -s 2026-09-15_Pixel-8 --conflict skip -y
+
+       Einen Satz prüfen:
+              pixel-backup verify --set 2026-09-15_Pixel-8
+
+UMGEBUNG
+       DISPLAY, WAYLAND_DISPLAY
+              Bestimmen, ob die Oberfläche starten kann. Für die Kommandozeile werden
+              sie nicht gebraucht.
+
+HINWEISE
+       Ab Android 12 lassen sich die Daten installierter Apps ohne Root-Rechte nicht
+       mehr auslesen; Dateien, Apps, Kontakte, Nachrichten und Termine schon.  Kontakte,
+       Nachrichten, Anrufliste und Kalender werden zusätzlich als Importdateien (vcf,
+       xml, ics) abgelegt, die sich auf einem neuen Gerät einlesen lassen.
+
+SIEHE AUCH
+       adb(1), cron(8)
+
+       Vollständige Anleitung: <https://github.com/Tinnitus97/Pixel-Backup>
+
+FEHLER MELDEN
+       <https://github.com/Tinnitus97/Pixel-Backup/issues>
+
+Pixel Backup 0.9.0                     2026-09-15                        PIXEL-BACKUP(1)

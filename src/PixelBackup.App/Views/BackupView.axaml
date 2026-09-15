@@ -10,8 +10,19 @@
       <TextBlock Text="{Binding TargetDescription}" Classes="hint" Margin="0,6,0,0" />
     </StackPanel>
 
-    <Border Grid.Row="1" Classes="card" Margin="0,14,0,12">
-      <StackPanel Spacing="10">
+    <Border Grid.Row="1" Classes="card" Margin="0,10,0,8">
+      <StackPanel Spacing="8">
+
+        <!-- Speicherort: dieselbe Angabe wie in den Einstellungen, hier griffbereit -->
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="7">
+          <TextBlock Grid.Column="0" Text="{Binding LabelTargetFolder}" VerticalAlignment="Center"
+                     Classes="hint" MinWidth="74" />
+          <TextBox Grid.Column="1" Classes="path" Text="{Binding BackupRoot, Mode=TwoWay}"
+                   IsEnabled="{Binding IsIdle}" ToolTip.Tip="{Binding TipTargetFolder}" />
+          <Button Grid.Column="2" Content="{Binding LabelBrowse}" Command="{Binding BrowseTargetCommand}" />
+          <Button Grid.Column="3" Content="{Binding LabelOpenFolder}" Command="{Binding OpenTargetCommand}" />
+        </Grid>
+
         <WrapPanel>
           <CheckBox Content="{Binding LabelIncremental}" Margin="0,0,20,0"
                     IsChecked="{Binding Incremental, Mode=TwoWay}"

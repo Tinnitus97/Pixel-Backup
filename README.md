@@ -67,6 +67,15 @@ und die Geräteregeln eingerichtet
 
 ![Ansicht „Komponenten“ unter X11](docs/screenshots/live/08-komponenten-x11.png)
 
+**Sichern** – die kompakte Oberfläche (1180 × 720): Sprache und Hell/Dunkel oben rechts,
+der Speicherort direkt über den Gruppen
+
+![Ansicht „Sichern“ mit Speicherort](docs/screenshots/live/10-sichern-kompakt.png)
+
+**English, hell** – dieselbe Anwendung nach zwei Klicks in der Kopfzeile
+
+![Restore view in English, light theme](docs/screenshots/live/11-english-hell.png)
+
 **Versionscheck** – dieselbe Seite mit einer angebotenen Aktualisierung: Pixel Backup erkennt die
 eigene Fassung und die Einbauart und spielt auf Knopfdruck die passende Datei ein
 
@@ -155,6 +164,14 @@ Beim Wiederherstellen legt Pixel Backup diese Dateien unter `/sdcard/PixelBackup
 Zielgerät ab. Jeder Sicherungssatz enthält zusätzlich `umzug-anleitung.txt` mit den Schritten für
 genau diesen Satz.
 
+### Kommandozeile
+
+* Jeder Handgriff geht auch ohne Fenster: `devices`, `info`, `categories`, `backup`, `restore`,
+  `list`, `verify`, `components`, `update`.
+* Für Skripte: `--json`, `--quiet`, `--dry-run` und feste Rückgabewerte.
+* **Handbuchseite**: unter Linux `man pixel-backup`, unter Windows `PixelBackup.exe manual`.
+* Einzelheiten im Abschnitt [„Kommandozeile“](#kommandozeile-cli).
+
 ### Versionscheck und Aktualisierung
 
 * Erkennt die eigene Fassung **und die Einbauart** (EXE, `.deb`, `.rpm`, AppImage, Flatpak,
@@ -166,6 +183,8 @@ genau diesen Satz.
 
 ### Sprache, Erscheinungsbild und Komponenten
 
+* **Oben rechts umschaltbar** – Sprache (Deutsch/English) und Hell/Dunkel liegen in der
+  Kopfzeile, nicht versteckt in den Einstellungen; beides wirkt sofort und wird gemerkt.
 * **Deutsch und Englisch** – die Oberfläche startet in der **Anzeigesprache des Systems**
   (Deutsch bei einem deutschen System, sonst Englisch) und lässt sich jederzeit umschalten;
   die Umschaltung wirkt sofort, ohne Neustart.
@@ -286,7 +305,7 @@ dotnet run --project src/PixelBackup.App
 ```
 
 Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 154 grüne
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 200 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:
@@ -373,6 +392,52 @@ Entfernen: `sudo apt remove pixel-backup` beziehungsweise `./packaging/linux/uni
 Wer lieber mit installiertem .NET arbeitet, spart Platz: eine framework-abhängige Fassung
 (`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 46 MiB,
 setzt dann aber die .NET-10-Runtime auf dem Zielrechner voraus.
+
+## Kommandozeile (CLI)
+
+Ohne Argumente startet die Oberfläche, mit einem Befehl arbeitet dieselbe Datei auf der
+Kommandozeile – unter Linux wie unter Windows. Unter Windows hängt sich das Programm dafür an
+die Konsole des Aufrufers; ein Doppelklick startet weiterhin das Fenster.
+
+```
+pixel-backup                        startet die Oberfläche
+pixel-backup <Befehl> [Optionen]
+```
+
+| Befehl | Was er tut |
+| --- | --- |
+| `devices` | verbundene Geräte auflisten |
+| `info` | Android-Fassung, Akku, Speicher, Root |
+| `categories` | Gruppen samt Kennung auflisten |
+| `backup` | Sicherung anlegen |
+| `restore` | Sicherung zurückspielen (verlangt `--yes`) |
+| `list` | vorhandene Sicherungssätze auflisten |
+| `verify` | Satz gegen die Prüfsummen prüfen |
+| `components` | adb und Gerätezugang prüfen (`--install` richtet ein) |
+| `update` | Versionscheck (`--install --yes` spielt ein) |
+| `gui`, `help`, `version`, `manual` | Oberfläche, Hilfe, Fassung, Handbuch |
+
+Die wichtigsten Optionen: `--device`, `--output`, `--categories`, `--all`, `--set`,
+`--incremental`, `--no-hashes`, `--archive`, `--password`, `--conflict skip|overwrite|both`,
+`--dry-run`, `--yes`, `--json`, `--quiet`, `--language de|en`.
+
+```bash
+pixel-backup devices
+pixel-backup backup --categories photos,videos --output /mnt/platte
+pixel-backup backup --all --incremental --quiet     # z. B. aus cron
+pixel-backup list --json
+pixel-backup restore --set 2026-09-15_Pixel-8 --conflict skip --yes
+pixel-backup verify --set 2026-09-15_Pixel-8
+```
+
+**Rückgabewerte** – gedacht für Skripte: `0` in Ordnung, `1` Fehler, `2` falscher Aufruf,
+`3` kein Gerät, `4` adb fehlt, `130` abgebrochen.
+
+**Handbuch**: Die Handbuchseite liegt in allen Linux-Paketen (`man pixel-backup`). Unter Windows
+gibt es dieselbe Fassung als Text – `PixelBackup.exe manual` gibt sie aus, und `HANDBUCH.txt`
+liegt neben der EXE. Quelle ist `packaging/man/pixel-backup.1`; die Textfassung erzeugt
+`packaging/man/render.sh`, und ein Test wacht darüber, dass beide alle Befehle und Optionen
+nennen.
 
 ## Versionscheck und Aktualisierung
 
@@ -600,6 +665,7 @@ tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stape
 packaging/linux/        Installations- und Paketskripte (deb, rpm, AppImage, Flatpak, tar.gz),
                         Geräteregeln, Startmenü-Eintrag, Symbole
 packaging/flatpak/      Flatpak-Bauanleitung und AppStream-Angaben
+packaging/man/          Handbuchseite (pixel-backup.1) und ihre Textfassung
 packaging/make-update-manifest.sh  erzeugt update.json für den Versionscheck
 packaging/arch/         PKGBUILD für Arch und Manjaro
 packaging/windows/      Veröffentlichungsskript für die eigenständige EXE

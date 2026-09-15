@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PixelBackup.Core\PixelBackup.Core.csproj" />
+    <!-- Die Kommandozeile liegt in der Anwendung; geprueft wird der reine Parser. -->
+    <ProjectReference Include="..\..\src\PixelBackup.App\PixelBackup.App.csproj" />
   </ItemGroup>
 
 </Project>
