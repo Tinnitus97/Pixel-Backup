@@ -22,10 +22,10 @@ jobs:
             rid: linux-x64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: .NET einrichten
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -79,7 +79,7 @@ jobs:
         run: ./packaging/linux/package.sh --require-all
 
       - name: Ergebnis ablegen
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pixel-backup-${{ matrix.rid }}
           path: publish/${{ matrix.rid }}
@@ -87,7 +87,7 @@ jobs:
 
       - name: Linux-Pakete ablegen
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pixel-backup-linux-pakete
           path: dist/

@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <!-- Konsolenanwendung, damit die Kommandozeile unter Windows sauber
+         funktioniert: cmd und PowerShell warten auf das Ende, Ausgabe und
+         Rückgabewert kommen an, Umleitungen und Pipes gehen. Beim Start ohne
+         Befehl (Doppelklick) blendet Program.Main das Konsolenfenster sofort
+         aus, sodass nur das Fenster der Anwendung übrig bleibt. -->
+    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>PixelBackup.App</RootNamespace>
     <AssemblyName>PixelBackup</AssemblyName>

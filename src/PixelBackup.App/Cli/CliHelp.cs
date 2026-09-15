@@ -14,9 +14,53 @@ public static class CliHelp
 {
     public const string ManualResource = "PixelBackup.App.Cli.pixel-backup.1.txt";
 
+    /// <summary>
+    /// Der Name, unter dem das Programm gerade läuft – unter Windows
+    /// „PixelBackup.exe“, sonst „pixel-backup“. So passen die Beispiele in der
+    /// Hilfe zu dem, was man wirklich tippen muss.
+    /// </summary>
+    public static string ProgramName
+    {
+        get
+        {
+            try
+            {
+                var path = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(path))
+                {
+                    var name = Path.GetFileName(path);
+                    var plain = Path.GetFileNameWithoutExtension(path);
+
+                    // Aus einem Paket heraus liegt die Datei in einem Ordner
+                    // "pixel-backup" und wird über den Starter gleichen Namens
+                    // aufgerufen – dann ist das der Name, den man tippt.
+                    var folder = Path.GetFileName(Path.GetDirectoryName(path) ?? string.Empty);
+                    if (string.Equals(folder, "pixel-backup", StringComparison.Ordinal))
+                    {
+                        return "pixel-backup";
+                    }
+
+                    // Beim Aufruf über den Testläufer oder "dotnet run" steht dort
+                    // etwas anderes; dann bleibt es beim üblichen Namen.
+                    if (plain.StartsWith("PixelBackup", StringComparison.OrdinalIgnoreCase)
+                        || plain.StartsWith("pixel-backup", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return name;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Dann eben der Name aus dem Paket.
+            }
+
+            return OperatingSystem.IsWindows() ? "PixelBackup.exe" : "pixel-backup";
+        }
+    }
+
     public static string Usage => Loc.Tr(
-        "Aufruf: pixel-backup [Befehl] [Optionen]   ·   Hilfe: pixel-backup --help",
-        "Usage: pixel-backup [command] [options]   ·   help: pixel-backup --help");
+        $"Aufruf: {ProgramName} [Befehl] [Optionen]  |  Hilfe: {ProgramName} --help",
+        $"Usage: {ProgramName} [command] [options]  |  help: {ProgramName} --help");
 
     /// <summary>Die kurze Hilfe, die --help ausgibt.</summary>
     public static string Text => Loc.Tr(German, English);
@@ -49,8 +93,8 @@ public static class CliHelp
         Pixel Backup {InstallationInfo.CurrentVersion} – Sicherung für Android-Geräte über adb
 
         Aufruf:
-          pixel-backup                        startet die Oberfläche
-          pixel-backup <Befehl> [Optionen]
+          {ProgramName}                        startet die Oberfläche
+          {ProgramName} <Befehl> [Optionen]
 
         Befehle:
           devices          verbundene Geräte auflisten
@@ -84,25 +128,25 @@ public static class CliHelp
               --install                 bei components/update: einrichten
 
         Beispiele:
-          pixel-backup devices
-          pixel-backup backup --categories photos,videos --output /mnt/platte
-          pixel-backup backup --all --incremental --yes
-          pixel-backup list --json
-          pixel-backup restore --set 2026-09-15_Pixel-8 --conflict skip --yes
-          pixel-backup verify --set 2026-09-15_Pixel-8
+          {ProgramName} devices
+          {ProgramName} backup --categories photos,videos --output D:\\Sicherungen
+          {ProgramName} backup --all --incremental --yes
+          {ProgramName} list --json
+          {ProgramName} restore --set 2026-09-15_Pixel-8 --conflict skip --yes
+          {ProgramName} verify --set 2026-09-15_Pixel-8
 
         Rückgabewerte: 0 in Ordnung, 1 Fehler, 2 Aufruffehler, 3 kein Gerät,
         4 adb fehlt, 130 abgebrochen.
 
-        Ausführlich: pixel-backup --manual   (unter Linux auch: man pixel-backup)
+        Ausführlich: {ProgramName} --manual   (unter Linux auch: man pixel-backup)
         """;
 
     private static string English => $"""
         Pixel Backup {InstallationInfo.CurrentVersion} – backup for Android devices over adb
 
         Usage:
-          pixel-backup                        starts the graphical interface
-          pixel-backup <command> [options]
+          {ProgramName}                        starts the graphical interface
+          {ProgramName} <command> [options]
 
         Commands:
           devices          list connected devices
@@ -136,16 +180,16 @@ public static class CliHelp
               --install                 components/update: install
 
         Examples:
-          pixel-backup devices
-          pixel-backup backup --categories photos,videos --output /mnt/disk
-          pixel-backup backup --all --incremental --yes
-          pixel-backup list --json
-          pixel-backup restore --set 2026-09-15_Pixel-8 --conflict skip --yes
-          pixel-backup verify --set 2026-09-15_Pixel-8
+          {ProgramName} devices
+          {ProgramName} backup --categories photos,videos --output /mnt/disk
+          {ProgramName} backup --all --incremental --yes
+          {ProgramName} list --json
+          {ProgramName} restore --set 2026-09-15_Pixel-8 --conflict skip --yes
+          {ProgramName} verify --set 2026-09-15_Pixel-8
 
         Exit codes: 0 fine, 1 error, 2 usage, 3 no device, 4 adb missing,
         130 cancelled.
 
-        In detail: pixel-backup --manual   (on Linux also: man pixel-backup)
+        In detail: {ProgramName} --manual   (on Linux also: man pixel-backup)
         """;
 }

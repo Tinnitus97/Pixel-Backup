@@ -212,10 +212,23 @@ auch die Tests laufen lässt.
 * **`CliHelp`** hält die kurze Hilfe in beiden Sprachen und liefert das Handbuch aus einer
   eingebetteten Textfassung der Handbuchseite.
 
-`Program.Main` entscheidet vor allem anderen: Befehl → Kommandozeile, sonst Oberfläche. Unter
-Windows ist die Anwendung ein Fensterprogramm (`WinExe`) und hängt an keiner Konsole; deshalb
-holt sich `AttachToConsole` über `AttachConsole(ATTACH_PARENT_PROCESS)` die Konsole des
-Aufrufers und öffnet die Ströme neu. Ohne Konsole (Doppelklick) bleibt alles wie bisher.
+`Program.Main` entscheidet vor allem anderen: Befehl → Kommandozeile, sonst Oberfläche.
+
+Die Anwendung ist eine **Konsolenanwendung** (`OutputType=Exe`). Unter Windows ist das der
+Unterschied zwischen „geht“ und „geht nicht“: nur so wartet die Eingabeaufforderung auf das Ende,
+kommen Ausgabe und Rückgabewert an und funktionieren Umleitungen und Pipes. Der frühere Weg über
+`AttachConsole(ATTACH_PARENT_PROCESS)` gab zwar Text aus, aber die Eingabeaufforderung war da
+längst zurück – die Ausgabe landete hinter dem nächsten Prompt.
+
+Damit ein Doppelklick trotzdem nur ein Fenster zeigt, blendet `HideOwnConsole` die Konsole aus,
+**wenn sie uns allein gehört**: `GetConsoleProcessList` meldet dann genau einen Vorgang. Aus einer
+vorhandenen Eingabeaufforderung heraus sind es mindestens zwei, und die bleibt unangetastet.
+`PrepareConsole` stellt für Befehle zusätzlich UTF-8 ein, sonst zeigt die Eingabeaufforderung für
+Umlaute und typografische Zeichen Wirrwarr.
+
+Die Hilfe nennt den Namen, unter dem das Programm gerade läuft (`CliHelp.ProgramName`): unter
+Windows `PixelBackup.exe`, aus einem Linux-Paket `pixel-backup`. Und wer den Programmnamen als
+Befehl tippt (`PixelBackup.exe pixel-backup --help`), bekommt das ausdrücklich gesagt.
 
 Die Handbuchseite `packaging/man/pixel-backup.1` ist die einzige Quelle: `render.sh` erzeugt
 daraus mit `mandoc` (oder `groff`) die Textfassung, die als eingebettete Ressource in der
@@ -286,7 +299,7 @@ Satzlisten auf. Damit können Seite, Ablage und Einstellung nicht auseinanderlau
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 206 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+`dotnet test` meldet 218 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit

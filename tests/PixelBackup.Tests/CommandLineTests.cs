@@ -192,6 +192,49 @@ public class CommandLineTests
         Assert.False(CommandLine.Parse(new[] { "backup", "--language", "fr" }).IsValid);
     }
 
+    [Theory]
+    [InlineData("-help")]
+    [InlineData("-?")]
+    [InlineData("/?")]
+    [InlineData("/h")]
+    [InlineData("/help")]
+    public void WindowsStyleHelpSwitchesWork(string argument)
+    {
+        var options = CommandLine.Parse(new[] { argument });
+
+        Assert.True(options.IsValid);
+        Assert.Equal(CliCommand.Help, options.Command);
+    }
+
+    [Theory]
+    [InlineData("-version")]
+    [InlineData("/v")]
+    [InlineData("/version")]
+    public void WindowsStyleVersionSwitchesWork(string argument)
+    {
+        Assert.Equal(CliCommand.Version, CommandLine.Parse(new[] { argument }).Command);
+    }
+
+    [Theory]
+    [InlineData("pixel-backup")]
+    [InlineData("PixelBackup.exe")]
+    [InlineData("pixelbackup")]
+    public void TheProgramNameAsCommandGivesAHint(string name)
+    {
+        var options = CommandLine.Parse(new[] { name });
+
+        Assert.False(options.IsValid);
+        Assert.Contains("--help", options.Error);
+        Assert.True(CommandLine.IsProgramName(name));
+    }
+
+    [Fact]
+    public void OtherWordsAreNotTheProgramName()
+    {
+        Assert.False(CommandLine.IsProgramName("backup"));
+        Assert.False(CommandLine.IsProgramName("pixel"));
+    }
+
     // ------------------------------------------------- Hilfe und Handbuch
 
     [Fact]

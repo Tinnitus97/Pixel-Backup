@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 using Avalonia;
 using PixelBackup.App.Cli;
 using PixelBackup.Core.Localization;
@@ -17,9 +18,14 @@ internal static class Program
         var options = CommandLine.Parse(args);
         if (options.Command != CliCommand.Gui)
         {
-            AttachToConsole();
+            PrepareConsole();
             return RunCli(options);
         }
+
+        // Ohne Befehl: das Konsolenfenster verschwindet, es bleibt das Fenster
+        // der Anwendung. Wurde sie aus einer vorhandenen Konsole gestartet,
+        // bleibt diese unangetastet.
+        HideOwnConsole();
 
         // Unter Linux zuerst klären, ob überhaupt eine Anzeige da ist. Sonst
         // bricht Avalonia mit einer Meldung ab, mit der niemand etwas anfangen kann.
@@ -78,12 +84,29 @@ internal static class Program
     }
 
     /// <summary>
-    /// Windows startet die Anwendung als Fensterprogramm (WinExe) – sie hängt
-    /// dann an keiner Konsole, und jede Ausgabe ginge ins Leere. Deshalb wird
-    /// die Konsole des aufrufenden Fensters übernommen; gibt es keine (Start per
-    /// Doppelklick), bleibt alles wie bisher.
+    /// Stellt die Konsole auf UTF-8. Ohne das zeigt die Eingabeaufforderung
+    /// unter Windows für „·“, Umlaute und Anführungszeichen wirres Zeug an,
+    /// weil sie noch mit einer alten Codepage arbeitet.
     /// </summary>
-    private static void AttachToConsole()
+    private static void PrepareConsole()
+    {
+        try
+        {
+            Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        }
+        catch (Exception)
+        {
+            // Ohne Konsole (Aufruf aus einem Dienst) bleibt es bei der Vorgabe.
+        }
+    }
+
+    /// <summary>
+    /// Blendet das eigene Konsolenfenster aus. Das ist nur der Fall, wenn die
+    /// Anwendung per Doppelklick gestartet wurde – dann hängt kein anderer
+    /// Vorgang an dieser Konsole. Aus einer Eingabeaufforderung heraus hängen
+    /// mindestens zwei daran; die bleibt selbstverständlich stehen.
+    /// </summary>
+    private static void HideOwnConsole()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -92,27 +115,39 @@ internal static class Program
 
         try
         {
-            if (!AttachConsole(AttachParentProcess))
+            var processes = new uint[4];
+            if (GetConsoleProcessList(processes, (uint)processes.Length) != 1)
             {
                 return;
             }
 
-            // Die Ströme zeigen nach dem Anhängen noch ins Leere; sie werden neu geöffnet.
-            var stdout = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
-            var stderr = new StreamWriter(Console.OpenStandardError()) { AutoFlush = true };
-            Console.SetOut(stdout);
-            Console.SetError(stderr);
+            var window = GetConsoleWindow();
+            if (window != IntPtr.Zero)
+            {
+                ShowWindow(window, SwHide);
+            }
+
+            FreeConsole();
         }
         catch (Exception)
         {
-            // Ohne Konsole läuft der Befehl trotzdem – nur eben ohne Ausgabe.
+            // Bleibt das Fenster stehen, ist das unschön, aber nicht schlimm.
         }
     }
 
-    private const int AttachParentProcess = -1;
+    private const int SwHide = 0;
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AttachConsole(int processId);
+    private static extern uint GetConsoleProcessList(uint[] processList, uint count);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetConsoleWindow();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool FreeConsole();
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr window, int command);
 
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
         .UsePlatformDetect()

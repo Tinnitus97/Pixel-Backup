@@ -162,17 +162,18 @@ public static class CommandLine
 
             switch (name)
             {
-                case "-h" or "--help":
+                // Auch die unter Windows üblichen Schreibweisen annehmen.
+                case "-h" or "--help" or "-help" or "-?" or "/?" or "/h" or "/help":
                     command = CliCommand.Help;
                     commandSeen = true;
                     break;
 
-                case "-v" or "--version":
+                case "-v" or "--version" or "-version" or "/v" or "/version":
                     command = CliCommand.Version;
                     commandSeen = true;
                     break;
 
-                case "--manual":
+                case "--manual" or "-manual" or "/manual":
                     command = CliCommand.Manual;
                     commandSeen = true;
                     break;
@@ -310,6 +311,14 @@ public static class CommandLine
 
                     if (!Commands.TryGetValue(name, out command))
                     {
+                        // Häufiger Irrtum: der Programmname wird als Befehl getippt.
+                        if (IsProgramName(name))
+                        {
+                            return CliOptions.Failed(Loc.Tr(
+                                $"„{name}“ ist der Name des Programms, kein Befehl. Gemeint ist vermutlich: {CliHelp.ProgramName} --help",
+                                $"\"{name}\" is the name of the program, not a command. You probably mean: {CliHelp.ProgramName} --help"));
+                        }
+
                         return CliOptions.Failed(Loc.Tr(
                             $"Unbekannter Befehl: {name}",
                             $"Unknown command: {name}"));
@@ -344,6 +353,19 @@ public static class CommandLine
 
     /// <summary>Soll die Oberfläche starten? Das ist der Fall ohne Argumente und bei „gui“.</summary>
     public static bool WantsGui(IReadOnlyList<string> args) => Parse(args).Command == CliCommand.Gui;
+
+    /// <summary>Ist das der Programmname selbst (pixel-backup, PixelBackup.exe …)?</summary>
+    public static bool IsProgramName(string name)
+    {
+        var plain = name.Trim();
+        if (plain.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            plain = plain[..^4];
+        }
+
+        plain = plain.Replace("-", string.Empty).Replace("_", string.Empty);
+        return string.Equals(plain, "pixelbackup", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static CliOptions Missing(string option) => CliOptions.Failed(Loc.Tr(
         $"Der Option {option} fehlt der Wert.",

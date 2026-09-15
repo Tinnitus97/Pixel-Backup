@@ -313,8 +313,14 @@ dotnet build -c Release
 dotnet run --project src/PixelBackup.App
 ```
 
+Die Paketquelle steht im Projekt (`NuGet.config`, ausschließlich nuget.org). Ohne diese Datei
+gelten die Quellen des jeweiligen Rechners – ist dort etwa eine eigene MyGet-Quelle eingestellt,
+meldet Visual Studio bei jedem Avalonia-Paket „In dieser Quelle nicht verfügbar“. Wer die
+Projektmappe öffnet, braucht also nichts einzustellen; im NuGet-Paket-Manager muss als
+Paketquelle **nuget.org** stehen.
+
 Die Oberfläche baut auf Avalonia 11.3.22 auf. Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 206 grüne
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 218 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:
@@ -405,13 +411,23 @@ setzt dann aber die .NET-10-Runtime auf dem Zielrechner voraus.
 ## Kommandozeile (CLI)
 
 Ohne Argumente startet die Oberfläche, mit einem Befehl arbeitet dieselbe Datei auf der
-Kommandozeile – unter Linux wie unter Windows. Unter Windows hängt sich das Programm dafür an
-die Konsole des Aufrufers; ein Doppelklick startet weiterhin das Fenster.
+Kommandozeile – unter Linux wie unter Windows.
 
 ```
-pixel-backup                        startet die Oberfläche
-pixel-backup <Befehl> [Optionen]
+pixel-backup                        startet die Oberfläche          (Linux)
+PixelBackup.exe --help                                              (Windows)
 ```
+
+**Unter Windows** heißt die Datei `PixelBackup.exe`, und genau so wird sie aufgerufen:
+`PixelBackup.exe --help`, `PixelBackup.exe devices`, `PixelBackup.exe backup --all`. Neben
+`--help` werden auch die dort üblichen Schreibweisen `-help`, `-?`, `/?` und `/help`
+angenommen. Die Anwendung ist eine Konsolenanwendung: die Eingabeaufforderung wartet auf das
+Ende, Ausgabe und Rückgabewert kommen an, Umleitungen (`> datei.txt`) und Pipes funktionieren.
+Beim Start **ohne** Befehl – also per Doppelklick – blendet sie ihr Konsolenfenster sofort aus;
+übrig bleibt nur das Fenster der Anwendung.
+
+> Der Name des Programms ist kein Befehl: `PixelBackup.exe pixel-backup --help` geht nicht.
+> Darauf weist die Anwendung inzwischen ausdrücklich hin.
 
 | Befehl | Was er tut |
 | --- | --- |
@@ -441,6 +457,9 @@ pixel-backup verify --set 2026-09-15_Pixel-8
 
 **Rückgabewerte** – gedacht für Skripte: `0` in Ordnung, `1` Fehler, `2` falscher Aufruf,
 `3` kein Gerät, `4` adb fehlt, `130` abgebrochen.
+
+Unter Windows stellt die Anwendung die Konsole auf UTF-8, damit Umlaute und Anführungszeichen
+richtig ankommen statt als `ÔÇ»`-Wirrwarr.
 
 **Handbuch**: Die Handbuchseite liegt in allen Linux-Paketen (`man pixel-backup`). Unter Windows
 gibt es dieselbe Fassung als Text – `PixelBackup.exe manual` gibt sie aus, und `HANDBUCH.txt`
