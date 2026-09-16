@@ -22,10 +22,17 @@ public sealed class ComponentsViewModel : ViewModelBase
         UpdateTitle();
 
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => Components.IsIdle, ReportError);
-        InstallAdbCommand = new AsyncRelayCommand(InstallAdbAsync, () => Components.IsIdle, ReportError);
+
+        // Die Einrichten-Schaltflächen bleiben nur ansprechbar, solange es
+        // wirklich etwas zu tun gibt. Steht die Komponente auf „aktuell“, wäre
+        // ein Klick folgenlos – dann ist die Schaltfläche grau.
+        InstallAdbCommand = new AsyncRelayCommand(
+            InstallAdbAsync,
+            () => Components.IsIdle && Adb.NeedsSetup,
+            ReportError);
         InstallDeviceAccessCommand = new AsyncRelayCommand(
             InstallDeviceAccessAsync,
-            () => Components.IsIdle && ComponentService.CanSetUpDeviceAccess,
+            () => Components.IsIdle && ComponentService.CanSetUpDeviceAccess && DeviceAccess.NeedsSetup,
             ReportError);
         InstallUpdateCommand = new AsyncRelayCommand(
             InstallUpdateAsync,
@@ -160,7 +167,11 @@ public sealed class ComponentsViewModel : ViewModelBase
             message);
     }
 
-    private async Task InstallUpdateAsync()
+    /// <summary>
+    /// Spielt die angebotene Fassung ein. Öffentlich, weil auch das Hinweisband
+    /// im Fensterrahmen denselben Weg nimmt – samt Rückfrage und Fortschritt.
+    /// </summary>
+    public async Task InstallUpdateAsync()
     {
         var check = Components.UpdateCheck;
         if (check is null)
@@ -255,6 +266,34 @@ public sealed class ComponentsViewModel : ViewModelBase
     public string LabelInstallDeviceAccess => OperatingSystem.IsLinux()
         ? Tr("Geräteregeln einrichten", "Install device rules")
         : Tr("USB-Treiber einrichten", "Install USB driver");
+
+    /// <summary>Sagt bei grauer Schaltfläche, warum es nichts zu tun gibt.</summary>
+    public string InstallAdbTooltip => Adb.NeedsSetup
+        ? Tr("Lädt die aktuellen Plattform-Tools von Google und richtet adb ein.",
+             "Downloads the current platform tools from Google and sets up adb.")
+        : Tr("Nichts zu tun – adb ist vorhanden und aktuell.",
+             "Nothing to do – adb is present and up to date.");
+
+    public string InstallDeviceAccessTooltip
+    {
+        get
+        {
+            if (DeviceAccess.NeedsSetup)
+            {
+                return OperatingSystem.IsLinux()
+                    ? Tr("Legt die udev-Regeln an, damit adb ohne Root-Rechte auf das Gerät darf.",
+                         "Creates the udev rules so adb may reach the device without root privileges.")
+                    : Tr("Lädt den Google-USB-Treiber und übergibt ihn an Windows.",
+                         "Downloads the Google USB driver and hands it to Windows.");
+            }
+
+            return OperatingSystem.IsLinux()
+                ? Tr("Nichts zu tun – die Geräteregeln sind eingerichtet.",
+                     "Nothing to do – the device rules are in place.")
+                : Tr("Nichts zu tun – der Treiber liegt im Treiberspeicher von Windows.",
+                     "Nothing to do – the driver is in the Windows driver store.");
+        }
+    }
 
     /// <summary>Betriebssystem samt Verteilung – hilft beim Nachvollziehen von Meldungen.</summary>
     public string SystemText

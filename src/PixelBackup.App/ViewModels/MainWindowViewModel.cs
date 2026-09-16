@@ -5,6 +5,7 @@ using PixelBackup.Core.Adb;
 using PixelBackup.Core.Localization;
 using PixelBackup.Core.Diagnostics;
 using PixelBackup.Core.Services;
+using PixelBackup.Core.Util;
 
 namespace PixelBackup.App.ViewModels;
 
@@ -14,6 +15,12 @@ public sealed class MainWindowViewModel : ObservableObject
     private readonly AppSession _session;
     private ViewModelBase _selectedPage;
     private int _languageIndex;
+
+    /// <summary>
+    /// Die Fassung, deren Hinweisband weggeklickt wurde. Erscheint später eine
+    /// noch neuere, meldet sich das Band wieder.
+    /// </summary>
+    private string? _dismissedVersion;
 
     public MainWindowViewModel(AppSession session)
     {
@@ -38,6 +45,23 @@ public sealed class MainWindowViewModel : ObservableObject
             () => _session.AdbAvailable);
 
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
+
+        // Das Hinweisband bedient dieselben Befehle wie die Seite „Komponenten“ –
+        // dieselbe Rückfrage, dieselbe Fortschrittsanzeige, nur von überall aus.
+        InstallUpdateCommand = new AsyncRelayCommand(
+            InstallUpdateFromBannerAsync,
+            () => _session.Components.IsIdle && _session.Components.Application.CanUpdate);
+        OpenReleasesCommand = new RelayCommand(() => Components.OpenReleasesCommand.Execute(null));
+        DismissUpdateCommand = new RelayCommand(DismissUpdate);
+
+        _session.Components.PropertyChanged += (_, _) =>
+        {
+            OnPropertiesChanged(
+                nameof(ShowUpdateBanner), nameof(CanInstallUpdate),
+                nameof(UpdateHeadline), nameof(UpdateSubline));
+            InstallUpdateCommand.RaiseCanExecuteChanged();
+        };
+
         _languageIndex = Localizer.I.Lang == AppLanguage.En ? 1 : 0;
 
         _session.PropertyChanged += (_, e) =>
@@ -87,6 +111,110 @@ public sealed class MainWindowViewModel : ObservableObject
     public SettingsViewModel Settings { get; }
 
     public AsyncRelayCommand RefreshDevicesCommand { get; }
+
+    // ------------------------------------------------------------ Hinweisband
+
+    public AsyncRelayCommand InstallUpdateCommand { get; }
+
+    public RelayCommand OpenReleasesCommand { get; }
+
+    public RelayCommand DismissUpdateCommand { get; }
+
+    /// <summary>Gibt es eine neuere Fassung, die noch nicht weggeklickt wurde?</summary>
+    public bool ShowUpdateBanner
+    {
+        get
+        {
+            var check = _session.Components.UpdateCheck;
+            if (check is null || !check.UpdateAvailable)
+            {
+                return false;
+            }
+
+            return check.OnlineVersion != _dismissedVersion;
+        }
+    }
+
+    /// <summary>
+    /// Ohne passende Datei für die eigene Einbauart gibt es nichts einzuspielen –
+    /// dann bleibt nur der Weg über die Veröffentlichungsseite.
+    /// </summary>
+    public bool CanInstallUpdate => _session.Components.UpdateCheck?.CanInstall == true;
+
+    public string UpdateHeadline
+    {
+        get
+        {
+            var version = _session.Components.UpdateCheck?.OnlineVersion;
+            return version is null
+                ? string.Empty
+                : Loc.Tr($"Fassung {version} von Pixel Backup ist verfügbar",
+                         $"Version {version} of Pixel Backup is available");
+        }
+    }
+
+    /// <summary>
+    /// Die Zeile darunter nennt das Wesentliche für die Entscheidung: was
+    /// installiert ist, was geladen würde und wie groß es ist.
+    /// </summary>
+    public string UpdateSubline
+    {
+        get
+        {
+            var check = _session.Components.UpdateCheck;
+            if (check is null)
+            {
+                return string.Empty;
+            }
+
+            var parts = new List<string>
+            {
+                Loc.Tr($"installiert: {check.LocalVersion}", $"installed: {check.LocalVersion}"),
+                InstallationInfo.KindText(check.Kind)
+            };
+
+            if (check.Package is null)
+            {
+                parts.Add(Loc.Tr("für diese Einbauart gibt es keine Datei",
+                                 "no file for this installation kind"));
+            }
+            else if (check.Package.Size > 0)
+            {
+                parts.Add(Humanize.Bytes(check.Package.Size));
+            }
+
+            if (!string.IsNullOrEmpty(check.Released))
+            {
+                parts.Add(Loc.Tr($"vom {check.Released}", $"released {check.Released}"));
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+
+    public string LabelInstallUpdate => Loc.Tr("Jetzt aktualisieren", "Update now");
+
+    public string LabelUpdateNotes => Loc.Tr("Änderungen ansehen", "View changes");
+
+    public string LabelDismissUpdate => Loc.Tr(
+        "Hinweis ausblenden – die Fassung bleibt unter „Komponenten“ abrufbar.",
+        "Hide this notice – the version stays available under \"Components\".");
+
+    /// <summary>
+    /// Vom Band aus aktualisieren: erst auf die Seite „Komponenten“ wechseln,
+    /// damit Rückfrage, Fortschritt und Ergebnis dort sichtbar sind.
+    /// </summary>
+    private async Task InstallUpdateFromBannerAsync()
+    {
+        SelectedPage = Components;
+        await Components.InstallUpdateAsync().ConfigureAwait(true);
+    }
+
+    private void DismissUpdate()
+    {
+        _dismissedVersion = _session.Components.UpdateCheck?.OnlineVersion;
+        OnPropertyChanged(nameof(ShowUpdateBanner));
+    }
 
     // --------------------------------------------- Sprache und Erscheinungsbild
 

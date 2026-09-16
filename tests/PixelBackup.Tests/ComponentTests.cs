@@ -145,4 +145,25 @@ public class ComponentTests
         Assert.True(ok.IsHealthy);
         Assert.Equal("36.0.1", ok.VersionText);
     }
+
+    /// <summary>
+    /// Die Einrichten-Schaltflächen hängen an NeedsSetup. Ist die Komponente
+    /// aktuell oder gar nicht nötig, gibt es nichts zu tun – dann bleibt die
+    /// Schaltfläche grau. Alles andere, auch der ungeprüfte Anfangszustand,
+    /// lässt das Einrichten zu.
+    /// </summary>
+    [Theory]
+    [InlineData(ComponentState.UpToDate, false)]
+    [InlineData(ComponentState.NotRequired, false)]
+    [InlineData(ComponentState.Missing, true)]
+    [InlineData(ComponentState.Problem, true)]
+    [InlineData(ComponentState.UpdateAvailable, true)]
+    [InlineData(ComponentState.Unknown, true)]
+    public void NeedsSetup_OnlyWhenThereIsSomethingToDo(ComponentState state, bool expected)
+    {
+        var status = new ComponentStatus { Name = "adb", State = state };
+
+        Assert.Equal(expected, status.NeedsSetup);
+        Assert.Equal(!expected, status.IsHealthy);
+    }
 }

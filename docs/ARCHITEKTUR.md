@@ -117,6 +117,11 @@ Betriebssystem, lädt es mit Fortschrittsmeldung, prüft die SHA-1-Prüfsumme un
 und installiert nach `%LOCALAPPDATA%\PixelBackup\platform-tools`. Vor einem Austausch wird der
 adb-Server beendet, sonst blockiert Windows die Dateien.
 
+Die Einrichten-Schaltflächen hängen an `ComponentStatus.NeedsSetup` (alles außer „aktuell“ und
+„nicht erforderlich“, der ungeprüfte Anfangszustand eingeschlossen). Steht ein Eintrag auf
+„aktuell“, wäre ein Klick folgenlos – die Schaltfläche ist dann grau, und ihr Kurzhinweis sagt,
+warum.
+
 `UsbDriverService` fragt Windows in einem einzigen PowerShell-Aufruf ab: Treiberspeicher
 (`pnputil /enum-drivers`), Geräte mit Problemkennung (`Win32_PnPEntity`) und den gebundenen
 Treiber (`Win32_PnPSignedDriver`). Die Installation läuft über `pnputil /add-driver … /install`
@@ -264,6 +269,16 @@ Aus dem portablen Archiv wird ausschließlich der Eintrag `PixelBackup` übernom
 In der Oberfläche ist das Ganze der dritte Eintrag auf der Seite „Komponenten“ und nutzt dieselbe
 `ComponentStatus`-Darstellung wie adb und die Geräteregeln.
 
+Damit die Meldung dort nicht vergraben bleibt, liegt im Fensterrahmen zusätzlich ein **gelbes
+Hinweisband** (`Border.warning` in `App.axaml`, Zeile 2 des Rasters in `MainWindow.axaml`). Es
+hängt an `MainWindowViewModel.ShowUpdateBanner` und damit unmittelbar am Ergebnis des
+Versionschecks; seine Schaltflächen rufen `ComponentsViewModel.InstallUpdateAsync` auf, nachdem
+`SelectedPage` auf die Komponenten-Seite gewechselt hat – so gibt es nur **eine** Stelle mit
+Rückfrage, Fortschrittsbalken und Ergebnis. Das ✕ merkt sich die weggeklickte Fassung
+(`_dismissedVersion`); eine noch neuere lässt das Band wieder erscheinen. Die Farben
+(`WarningBackgroundBrush`, `WarningBorderBrush`, `WarningTextBrush`) stehen je Thema getrennt,
+damit das Band hell wie dunkel lesbar bleibt.
+
 `.github/workflows/release.yml` erzeugt die Gegenseite: Es baut auf einem Windows- und einem
 Linux-Läufer alle sieben Dateien, bildet `SHA256SUMS`, erzeugt mit
 `packaging/make-update-manifest.sh` die Datei `update.json` und hängt alles an die
@@ -299,7 +314,7 @@ Satzlisten auf. Damit können Seite, Ablage und Einstellung nicht auseinanderlau
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 218 bestandene Tests (xunit.v3 auf der Microsoft Testing Platform; die
+`dotnet test` meldet 224 bestandene Tests (xunit.v3 auf der Microsoft Testing Platform; die
 Umstellung steht in `global.json`), und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und

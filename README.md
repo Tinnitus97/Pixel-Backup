@@ -86,6 +86,16 @@ eigene Fassung und die Einbauart und spielt auf Knopfdruck die passende Datei ei
 
 ![Versionscheck mit angebotener Aktualisierung](docs/screenshots/live/09-versionscheck.png)
 
+**Hinweisband** – gibt es eine neuere Fassung, steht sie als gelbes Band unter der Kopfzeile, auf
+jeder Seite. Ein ✕ blendet es für diese Fassung aus
+
+![Gelbes Hinweisband zur neuen Fassung](docs/screenshots/live/13-hinweisband-dunkel.png)
+
+**Komponenten, helles Erscheinungsbild** – dasselbe Band im hellen Bild; adb und die Geräteregeln
+sind aktuell, deshalb sind ihre Einrichten-Schaltflächen grau
+
+![Ansicht „Komponenten“ im hellen Erscheinungsbild](docs/screenshots/live/14-komponenten-hell.png)
+
 ### Mit angeschlossenem Gerät
 
 Diese Bilder sind **maßstabsgetreue Layout-Darstellungen** aus dem XAML (kein Testlauf), weil hier
@@ -184,6 +194,8 @@ genau diesen Satz.
 * Holt und prüft sie selbst: SHA-256 muss stimmen, sonst wird nichts eingespielt.
 * Tauscht die Programmdatei aus und startet neu – oder übergibt das Paket der Paketverwaltung.
 * Läuft beim Start (abschaltbar) und jederzeit über die Seite „Komponenten“.
+* Meldet sich mit einem **gelben Hinweisband** unter der Kopfzeile – auf jeder Seite, mit
+  Fassung, Größe und Datum, und mit einem ✕ zum Ausblenden.
 * Einzelheiten im Abschnitt [„Versionscheck und Aktualisierung“](#versionscheck-und-aktualisierung).
 
 ### Sprache, Erscheinungsbild und Komponenten
@@ -205,7 +217,9 @@ genau diesen Satz.
     (SHA-1-geprüft) und eingerichtet;
   * gibt es eine neuere Fassung, erscheint ein **Update-Angebot** (kein stiller Austausch);
   * meldet Windows ein Problemgerät oder fehlt der USB-Treiber, lässt er sich von hier aus
-    laden und über `pnputil` installieren.
+    laden und über `pnputil` installieren;
+  * steht ein Eintrag auf **aktuell**, ist seine Einrichten-Schaltfläche grau – ein Klick wäre
+    folgenlos. Der Mauszeiger darüber sagt, warum.
 
 ### Weitere Funktionen
 * **Analyse vorab** – zeigt je Gruppe Anzahl und Größe an, bevor etwas übertragen wird.
@@ -323,7 +337,7 @@ Die Oberfläche baut auf **Avalonia 12.1.2** auf; die Tests laufen mit **xunit.v
 Microsoft Testing Platform (dafür steht in `global.json` die Zeile
 `"test": { "runner": "Microsoft.Testing.Platform" }` – ohne sie geht `dotnet test` ab dem
 .NET-10-SDK noch den alten Weg und bricht ab). Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
-und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 218 grüne
+und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 224 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
 Eigenständige Windows-Datei erzeugen:
@@ -475,6 +489,20 @@ nennen.
 Pixel Backup weiß, **welche Fassung** es ist und **wie es eingespielt wurde** – und holt sich
 Aktualisierungen auf demselben Weg. Auf der Seite **Komponenten** steht es als dritter Eintrag
 neben adb und den Geräteregeln.
+
+Gibt es eine neuere Fassung, meldet sich zusätzlich ein **gelbes Hinweisband** unter der Kopfzeile –
+auf jeder Seite, nicht nur unter „Komponenten“. Es nennt die angebotene Fassung, die installierte,
+die Einbauart, die Dateigröße und das Datum:
+
+```
+⬆  Fassung 0.9.2 von Pixel Backup ist verfügbar          [Änderungen ansehen] [Jetzt aktualisieren] [✕]
+   installiert: 0.9.1 · portable Fassung · 40,2 MB · vom 2026-09-20
+```
+
+„Jetzt aktualisieren“ wechselt auf die Seite **Komponenten** und stellt dort dieselbe Rückfrage wie
+die Schaltfläche auf der Seite selbst – Fortschritt und Ergebnis bleiben also an einem Ort. Das
+**✕** blendet das Band für diese Fassung aus; erscheint später eine noch neuere, meldet es sich
+wieder. Gibt es für die eigene Einbauart keine Datei, bleibt nur „Änderungen ansehen“ stehen.
 
 | Einbauart | Was „Jetzt aktualisieren“ tut |
 | --- | --- |

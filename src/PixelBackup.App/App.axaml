@@ -10,14 +10,23 @@
         <ResourceDictionary x:Key="Default">
           <SolidColorBrush x:Key="CardBackgroundBrush">#FFFFFF</SolidColorBrush>
           <SolidColorBrush x:Key="CardBorderBrush">#E1E1E6</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningBackgroundBrush">#FFF6E0</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningBorderBrush">#E0A82E</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningTextBrush">#7A5200</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="CardBackgroundBrush">#FFFFFF</SolidColorBrush>
           <SolidColorBrush x:Key="CardBorderBrush">#E1E1E6</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningBackgroundBrush">#FFF6E0</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningBorderBrush">#E0A82E</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningTextBrush">#7A5200</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="CardBackgroundBrush">#2A2A2E</SolidColorBrush>
           <SolidColorBrush x:Key="CardBorderBrush">#3A3A42</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningBackgroundBrush">#38321F</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningBorderBrush">#D8B461</SolidColorBrush>
+          <SolidColorBrush x:Key="WarningTextBrush">#F9E2AF</SolidColorBrush>
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>
@@ -61,6 +70,21 @@
       <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Padding" Value="11" />
       <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- Hinweisband in Gelb: fällt auf, ohne wie ein Fehler auszusehen.
+         Die Farben stehen in den Themen, damit es hell wie dunkel lesbar ist. -->
+    <Style Selector="Border.warning">
+      <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="11,8" />
+    </Style>
+
+    <Style Selector="TextBlock.warningText">
+      <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <!-- Bedienelemente eine Spur flacher; die Schriftgröße erben sie vom Fenster. -->

@@ -36,6 +36,7 @@
             <Button Grid.Column="2"
                     Content="{Binding LabelInstallAdb}"
                     Command="{Binding InstallAdbCommand}"
+                    ToolTip.Tip="{Binding InstallAdbTooltip}"
                     Classes="accent"
                     VerticalAlignment="Center"
                     MinWidth="200" />
@@ -64,6 +65,7 @@
             <Button Grid.Column="2"
                     Content="{Binding LabelInstallDeviceAccess}"
                     Command="{Binding InstallDeviceAccessCommand}"
+                    ToolTip.Tip="{Binding InstallDeviceAccessTooltip}"
                     IsVisible="{Binding CanSetUpDeviceAccess}"
                     VerticalAlignment="Center"
                     MinWidth="200" />

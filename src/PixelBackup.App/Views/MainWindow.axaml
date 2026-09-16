@@ -9,7 +9,7 @@
         MinHeight="520"
         WindowStartupLocation="CenterScreen">
 
-  <Grid RowDefinitions="Auto,*,Auto">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
 
     <!-- Kopfzeile: Gerätestatus links, Bedienung rechts -->
     <Border Grid.Row="0" Padding="14,9" Background="{DynamicResource CardBackgroundBrush}">
@@ -41,8 +41,50 @@
       </Grid>
     </Border>
 
+    <!-- Hinweisband zur neuen Fassung. Es steht über allen Seiten, damit die
+         Meldung nicht auf der Seite „Komponenten“ vergraben bleibt, und
+         verschwindet wieder, sobald es nichts zu melden gibt oder der Hinweis
+         weggeklickt wurde. Geladen wird nichts ohne Rückfrage. -->
+    <Border Grid.Row="1"
+            Classes="warning"
+            Margin="14,9,14,0"
+            IsVisible="{Binding ShowUpdateBanner}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="⬆"
+                   FontSize="17"
+                   Margin="2,0,11,0"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource WarningTextBrush}" />
+
+        <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+          <TextBlock Text="{Binding UpdateHeadline}" Classes="warningText" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding UpdateSubline}" Classes="warningText" FontSize="11.5" Opacity="0.85" />
+        </StackPanel>
+
+        <Button Grid.Column="2"
+                Content="{Binding LabelUpdateNotes}"
+                Command="{Binding OpenReleasesCommand}"
+                Margin="10,0,0,0" />
+        <Button Grid.Column="3"
+                Content="{Binding LabelInstallUpdate}"
+                Command="{Binding InstallUpdateCommand}"
+                IsVisible="{Binding CanInstallUpdate}"
+                Classes="accent"
+                Margin="6,0,0,0"
+                MinWidth="150" />
+        <Button Grid.Column="4"
+                Content="✕"
+                Command="{Binding DismissUpdateCommand}"
+                ToolTip.Tip="{Binding LabelDismissUpdate}"
+                Margin="6,0,0,0"
+                Width="32"
+                HorizontalContentAlignment="Center" />
+      </Grid>
+    </Border>
+
     <!-- Navigation und Inhalt -->
-    <Grid Grid.Row="1" ColumnDefinitions="184,*">
+    <Grid Grid.Row="2" ColumnDefinitions="184,*">
       <ListBox Grid.Column="0"
                ItemsSource="{Binding Pages}"
                SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
@@ -62,7 +104,7 @@
     </Grid>
 
     <!-- Statusleiste -->
-    <Border Grid.Row="2" Padding="14,6" Background="{DynamicResource CardBackgroundBrush}">
+    <Border Grid.Row="3" Padding="14,6" Background="{DynamicResource CardBackgroundBrush}">
       <Grid ColumnDefinitions="*,Auto">
         <TextBlock Grid.Column="0" Text="{Binding SelectedPage.StatusMessage}" TextTrimming="CharacterEllipsis" />
         <TextBlock Grid.Column="1" Text="{Binding AdbStatus}" Classes="hint" TextTrimming="CharacterEllipsis" MaxWidth="460" />

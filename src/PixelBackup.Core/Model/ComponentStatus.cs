@@ -45,6 +45,13 @@ public sealed class ComponentStatus
 
     public bool IsHealthy => State is ComponentState.UpToDate or ComponentState.NotRequired;
 
+    /// <summary>
+    /// Gibt es hier etwas einzurichten? Alles außer „aktuell“ und „nicht
+    /// erforderlich“ zählt dazu – auch „nicht geprüft“, damit sich die
+    /// Komponente ohne Netzverbindung von Hand einrichten lässt.
+    /// </summary>
+    public bool NeedsSetup => !IsHealthy;
+
     public string Glyph => State switch
     {
         ComponentState.UpToDate => "✔",
