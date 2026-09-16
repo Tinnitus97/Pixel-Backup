@@ -43,7 +43,7 @@ case "$(uname -m)" in
   *) echo "Nicht unterstützte Architektur: $(uname -m)" >&2; exit 1 ;;
 esac
 
-VERSION="$(grep -oPm1 '(?<=<Version>)[^<]+' "$REPO_ROOT/Directory.Build.props" || echo "0.9.0")"
+VERSION="$(grep -oPm1 '(?<=<Version>)[^<]+' "$REPO_ROOT/Directory.Build.props" || echo "0.9.1")"
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT

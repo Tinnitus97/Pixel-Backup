@@ -4,11 +4,21 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>PixelBackup.Tests</RootNamespace>
+
+    <!-- xunit.v3 fuehrt die Tests in einer eigenen Programmdatei aus; das
+         Testprojekt ist deshalb eine Anwendung und keine Bibliothek mehr. -->
+    <OutputType>Exe</OutputType>
+
+    <!-- xunit.v3 laeuft auf der Microsoft Testing Platform. Ab dem .NET-10-SDK
+         muss "dotnet test" dafuer ausdruecklich umgestellt werden; ohne diese
+         Zeile bricht es mit dem Hinweis auf den alten VSTest-Weg ab. -->
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>
 

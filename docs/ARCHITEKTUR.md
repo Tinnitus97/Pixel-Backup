@@ -169,11 +169,11 @@ erkannten Verteilung.
 Beide Systeme bekommen dieselbe Bauweise: eine eigenständige Einzeldatei
 (`PublishSingleFile` samt `IncludeNativeLibrariesForSelfExtract`, damit auch SkiaSharp und
 HarfBuzz mit in die Datei wandern). Unter Windows ist das `PixelBackup.exe`, unter Linux die
-endungslose ELF-Datei `PixelBackup` (46 MiB). Beim ersten Start entpackt die .NET-Laufzeit die
+endungslose ELF-Datei `PixelBackup` (47 MiB). Beim ersten Start entpackt die .NET-Laufzeit die
 eingebetteten nativen Bibliotheken in einen Zwischenspeicher des Benutzers.
 
-`EnableCompressionInSingleFile` komprimiert die eingebettete Laufzeit: 91 → 46 MiB unter Linux,
-96 → 46 MiB unter Windows. Bezahlt wird das mit rund einer Zehntelsekunde beim allerersten Start
+`EnableCompressionInSingleFile` komprimiert die eingebettete Laufzeit: unter Linux gemessen
+95 → 47 MiB, unter Windows entsprechend. Bezahlt wird das mit rund einer Zehntelsekunde beim allerersten Start
 (gemessen 0,97 s statt 0,84 s bis zum Fenster, danach identisch), weil die Laufzeit einmalig in den
 Zwischenspeicher des Benutzers entpackt.
 
@@ -183,7 +183,7 @@ Zwischenspeicher des Benutzers entpackt.
 | --- | --- | --- |
 | `.deb` | `dpkg-deb` | Dateien unter `/usr/lib/pixel-backup`, Starter in `/usr/bin`, Startmenü-Eintrag und Symbole; `postinst` frischt Desktop- und Symbolzwischenspeicher auf |
 | `.rpm` | `rpmbuild` | derselbe `/usr`-Baum; Nachbearbeitung und Debug-Paket sind abgeschaltet, damit die fertige Einzeldatei unverändert bleibt |
-| `.AppImage` | `mksquashfs` | Typ-2-Abbild aus AppImage-Laufzeit und zstd-Dateisystem, läuft ohne Installation; enthält bewusst die **unkomprimierte** Einzeldatei, weil das Abbild selbst schon komprimiert ist (sonst 39 statt 34 MB) |
+| `.AppImage` | `mksquashfs` | Typ-2-Abbild aus AppImage-Laufzeit und zstd-Dateisystem, läuft ohne Installation; enthält bewusst die **unkomprimierte** Einzeldatei, weil das Abbild selbst schon komprimiert ist (sonst 40 statt 35 MB) |
 | `.flatpak` | `flatpak-builder` | Bündel auf `org.freedesktop.Platform//24.08`, Freigaben für X11/Wayland, USB-Geräte und Benutzerordner; bewusst nur PNG-Symbole, weil `appstreamcli` am Ende des Baus ein SVG ohne librsvg-Lader nicht lesen kann |
 | `.tar.gz` | `tar` | portables Archiv mit kleinem Einrichtungsskript für den angemeldeten Benutzer |
 
@@ -299,7 +299,8 @@ Satzlisten auf. Damit können Seite, Ablage und Einstellung nicht auseinanderlau
 ## Stand der Prüfung
 
 Der Quellstand ist mit dem .NET-10-SDK gebaut (`dotnet build -c Release`, ohne Warnungen),
-`dotnet test` meldet 218 bestandene Tests, und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
+`dotnet test` meldet 218 bestandene Tests (xunit.v3 auf der Microsoft Testing Platform; die
+Umstellung steht in `global.json`), und die Anwendung wurde unter Linux (Ubuntu 24.04) sowohl
 unter **X11** als auch in einer echten **Wayland-Sitzung** (Weston 13 mit Xwayland 23.2.6)
 gestartet und durchgeklickt – inklusive Sprach- und Themenwechsel, Einrichtung der udev-Regeln und
 Erkennung eines echten adb (34.0.4). Auch die Bereitstellung ist erprobt: `.deb` gebaut, mit

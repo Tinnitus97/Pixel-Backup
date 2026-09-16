@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Erzeugt update.json – die Datei, die der Versionscheck der Anwendung liest.
 #
-#   ./packaging/make-update-manifest.sh --version 0.9.0 --tag v0.9.0 --dist dist
+#   ./packaging/make-update-manifest.sh --version 0.9.1 --tag v0.9.1 --dist dist
 #
 # Gelesen wird der Ordner mit den fertigen Paketen; für jede erkannte Datei
 # entsteht ein Eintrag mit Einbauart, Architektur, Adresse und SHA-256.

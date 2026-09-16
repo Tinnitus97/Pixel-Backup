@@ -5,7 +5,7 @@
 #
 # Das Paket enthält eine eigenständige Fassung (kein .NET zur Laufzeit nötig).
 pkgname=pixel-backup
-pkgver=0.9.0
+pkgver=0.9.1
 pkgrel=1
 pkgdesc="Sicherung und Wiederherstellung für Android-Geräte über adb"
 arch=('x86_64' 'aarch64')

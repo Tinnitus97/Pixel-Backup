@@ -319,8 +319,10 @@ meldet Visual Studio bei jedem Avalonia-Paket „In dieser Quelle nicht verfügb
 Projektmappe öffnet, braucht also nichts einzustellen; im NuGet-Paket-Manager muss als
 Paketquelle **nuget.org** stehen.
 
-Die Oberfläche baut auf **Avalonia 12.1.2** auf (Tests mit xunit 2.9.3 und dem .NET-Test-SDK
-18.10.1). Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
+Die Oberfläche baut auf **Avalonia 12.1.2** auf; die Tests laufen mit **xunit.v3 4.0.1** auf der
+Microsoft Testing Platform (dafür steht in `global.json` die Zeile
+`"test": { "runner": "Microsoft.Testing.Platform" }` – ohne sie geht `dotnet test` ab dem
+.NET-10-SDK noch den alten Weg und bricht ab). Der Stand ist mit dem .NET-10-SDK gebaut, gestartet
 und getestet: `dotnet build -c Release` läuft ohne Warnung durch, `dotnet test` meldet 218 grüne
 Tests, und die Anwendung startet unter X11 **und** unter Wayland (siehe Aufnahmen oben).
 
@@ -344,21 +346,21 @@ dotnet test
 | | **Windows** | **Linux** |
 | --- | --- | --- |
 | Ergebnis | `PixelBackup.exe` | `PixelBackup` – eine ausführbare ELF-Datei **ohne Endung** |
-| Größe (eigenständig) | 46 MiB, eine Datei | 46 MiB, eine Datei |
+| Größe (eigenständig) | rund 47 MiB, eine Datei | 47 MiB, eine Datei |
 | .NET auf dem Zielrechner | nicht nötig | nicht nötig |
 | Erzeugt mit | `packaging\windows\publish.ps1` | `packaging/linux/install.sh` bzw. `package.sh` |
 | Verteilbare Pakete | die EXE selbst | `.deb`, `.rpm`, `.AppImage`, Flatpak-Bündel und `.tar.gz`, dazu ein PKGBUILD für Arch |
 
-**Warum nur 46 MiB:** Die eingebettete .NET-Laufzeit wird in der Einzeldatei komprimiert
-(`EnableCompressionInSingleFile`). Das halbiert die Datei – aus 91 MiB werden 46 MiB, aus der
-Windows-EXE 96 MiB → 46 MiB. Beim ersten Start entpackt die Laufzeit sie einmalig in den
+**Warum nur 47 MiB:** Die eingebettete .NET-Laufzeit wird in der Einzeldatei komprimiert
+(`EnableCompressionInSingleFile`). Das halbiert die Datei – unter Linux gemessen 95 MiB → 47 MiB,
+unter Windows entsprechend. Beim ersten Start entpackt die Laufzeit sie einmalig in den
 Zwischenspeicher des Benutzers; das kostet gemessen rund eine Zehntelsekunde (0,97 s statt 0,84 s
 bis zum Fenster), jeder weitere Start ist gleich schnell.
 
 Eine Ausnahme ist die **AppImage**: Sie ist selbst schon ein komprimiertes Dateisystem. Dort steckt
 deshalb bewusst die unkomprimierte Fassung – zweimal komprimieren würde die Datei nur größer machen
-(39 MB statt 34 MB). Bei `.deb` und `.rpm` ist es umgekehrt: das Paket wird etwas größer
-(38 statt 32 MB), dafür belegt die eingespielte Anwendung 46 statt 91 MiB auf der Platte.
+(gemessen 40 MB statt 35 MB). Bei `.deb` und `.rpm` ist es umgekehrt: das Paket wird etwas größer
+(40 statt 30 MB), dafür belegt die eingespielte Anwendung 47 statt 95 MiB auf der Platte.
 
 Unter Linux gibt es kein Gegenstück zur EXE-Datei mit Doppelklick-Kultur – üblich sind ein **Paket
 der Verteilung**, ein **portables Archiv** oder ein in sich geschlossenes Format wie AppImage und
@@ -371,11 +373,11 @@ Flatpak. Ein Aufruf erzeugt alle fünf:
 ```
 
 ```
-dist/pixel-backup_0.9.0_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   38 MB
-dist/pixel-backup-0.9.0-1.x86_64.rpm         Fedora, openSUSE, RHEL …          39 MB
-dist/PixelBackup-0.9.0-x86_64.AppImage       läuft ohne Installation           34 MB
-dist/pixel-backup-0.9.0.flatpak              Flatpak-Bündel
-dist/pixel-backup-0.9.0-linux-x64.tar.gz     portabel, jede Verteilung         39 MB
+dist/pixel-backup_0.9.1_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   40 MB
+dist/pixel-backup-0.9.1-1.x86_64.rpm         Fedora, openSUSE, RHEL …          41 MB
+dist/PixelBackup-0.9.1-x86_64.AppImage       läuft ohne Installation           35 MB
+dist/pixel-backup-0.9.1.flatpak              Flatpak-Bündel
+dist/pixel-backup-0.9.1-linux-x64.tar.gz     portabel, jede Verteilung         41 MB
 ```
 
 Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur dieses Format
@@ -384,12 +386,12 @@ Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur die
 **Einspielen:**
 
 ```bash
-sudo apt install ./dist/pixel-backup_0.9.0_amd64.deb      # Debian-Familie
-sudo dnf install ./dist/pixel-backup-0.9.0-1.x86_64.rpm   # Fedora, RHEL
-chmod +x dist/PixelBackup-0.9.0-x86_64.AppImage && ./dist/PixelBackup-0.9.0-x86_64.AppImage
-flatpak install --user ./dist/pixel-backup-0.9.0.flatpak  # Flatpak
-tar xzf pixel-backup-0.9.0-linux-x64.tar.gz               # portabel
-./pixel-backup-0.9.0/install.sh                           # trägt es ins Startmenü ein
+sudo apt install ./dist/pixel-backup_0.9.1_amd64.deb      # Debian-Familie
+sudo dnf install ./dist/pixel-backup-0.9.1-1.x86_64.rpm   # Fedora, RHEL
+chmod +x dist/PixelBackup-0.9.1-x86_64.AppImage && ./dist/PixelBackup-0.9.1-x86_64.AppImage
+flatpak install --user ./dist/pixel-backup-0.9.1.flatpak  # Flatpak
+tar xzf pixel-backup-0.9.1-linux-x64.tar.gz               # portabel
+./pixel-backup-0.9.1/install.sh                           # trägt es ins Startmenü ein
 cd packaging/arch && makepkg -si                          # Arch, Manjaro
 ```
 
@@ -406,7 +408,7 @@ Danach steht „Pixel Backup“ im Startmenü und lässt sich im Terminal mit `p
 Entfernen: `sudo apt remove pixel-backup` beziehungsweise `./packaging/linux/uninstall.sh`.
 
 Wer lieber mit installiertem .NET arbeitet, spart Platz: eine framework-abhängige Fassung
-(`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 46 MiB,
+(`dotnet publish -c Release -r linux-x64 --self-contained false`) belegt 22 MB statt 47 MiB,
 setzt dann aber die .NET-10-Runtime auf dem Zielrechner voraus.
 
 ## Kommandozeile (CLI)
@@ -531,19 +533,19 @@ Zwei Abläufe liegen in `.github/workflows/`:
 | `release.yml` | bei einem Merkmal `v*` oder von Hand | baut **alle** Fassungen, hängt sie an eine Veröffentlichung und erzeugt `SHA256SUMS` und `update.json` |
 
 ```bash
-git tag v0.9.0 && git push origin v0.9.0
+git tag v0.9.1 && git push origin v0.9.1
 ```
 
 Danach entsteht eine Veröffentlichung mit:
 
 ```
-PixelBackup-0.9.0-win-x64.exe      Windows 10/11 (x64)
-PixelBackup-0.9.0-win-arm64.exe    Windows auf ARM
-pixel-backup_0.9.0_amd64.deb       Debian, Ubuntu, Mint, Pop!_OS
-pixel-backup-0.9.0-1.x86_64.rpm    Fedora, openSUSE, RHEL
-PixelBackup-0.9.0-x86_64.AppImage  ohne Installation
-pixel-backup-0.9.0.flatpak         Flatpak-Bündel
-pixel-backup-0.9.0-linux-x64.tar.gz  portabel
+PixelBackup-0.9.1-win-x64.exe      Windows 10/11 (x64)
+PixelBackup-0.9.1-win-arm64.exe    Windows auf ARM
+pixel-backup_0.9.1_amd64.deb       Debian, Ubuntu, Mint, Pop!_OS
+pixel-backup-0.9.1-1.x86_64.rpm    Fedora, openSUSE, RHEL
+PixelBackup-0.9.1-x86_64.AppImage  ohne Installation
+pixel-backup-0.9.1.flatpak         Flatpak-Bündel
+pixel-backup-0.9.1-linux-x64.tar.gz  portabel
 SHA256SUMS                         Prüfsummen aller Dateien
 update.json                        Grundlage des Versionschecks
 ```
@@ -551,7 +553,7 @@ update.json                        Grundlage des Versionschecks
 `update.json` lässt sich auch von Hand erzeugen – etwa zum Nachsehen, was die Anwendung liest:
 
 ```bash
-./packaging/make-update-manifest.sh --version 0.9.0 --tag v0.9.0 --dist dist
+./packaging/make-update-manifest.sh --version 0.9.1 --tag v0.9.1 --dist dist
 ```
 
 ## Einrichten unter Linux
@@ -689,7 +691,7 @@ src/PixelBackup.Core/   Fachlogik ohne UI: adb-Hülle, Kategorien, Sicherung, Wi
                         Prüfung, Archivierung, Einstellungen, Sprachverwaltung,
                         Komponenten (Plattform-Tools, USB-Treiber)
 src/PixelBackup.App/    Avalonia-Oberfläche (MVVM, ohne zusätzliche MVVM-Abhängigkeit)
-tests/PixelBackup.Tests/ xUnit-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto,
+tests/PixelBackup.Tests/ xunit.v3-Tests für Pfadabbildung, Parser, Manifest, Stapelbildung, Krypto,
                         Sprachumschaltung, Paketlisten, Linux-Geräteregeln und Sitzungserkennung
 packaging/linux/        Installations- und Paketskripte (deb, rpm, AppImage, Flatpak, tar.gz),
                         Geräteregeln, Startmenü-Eintrag, Symbole
@@ -699,6 +701,7 @@ packaging/make-update-manifest.sh  erzeugt update.json für den Versionscheck
 packaging/arch/         PKGBUILD für Arch und Manjaro
 packaging/windows/      Veröffentlichungsskript für die eigenständige EXE
 .github/workflows/      Bau, Tests, X11-Startprüfung, alle Pakete und die Veröffentlichung
+global.json             stellt `dotnet test` auf die Microsoft Testing Platform um (xunit.v3)
 ```
 
 Details zur Architektur: [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).

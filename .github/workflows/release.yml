@@ -5,7 +5,7 @@ name: Release
 #   .deb, .rpm, .AppImage, Flatpak-Bündel, .tar.gz
 #   SHA256SUMS und update.json (daraus liest der Versionscheck der Anwendung)
 #
-# Ausgelöst durch einen Merkmalsnamen (v0.9.0) oder von Hand.
+# Ausgelöst durch einen Merkmalsnamen (v0.9.1) oder von Hand.
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Name der Veröffentlichung (z. B. v0.9.0); leer = aus Directory.Build.props"
+        description: "Name der Veröffentlichung (z. B. v0.9.1); leer = aus Directory.Build.props"
         required: false
         type: string
 
