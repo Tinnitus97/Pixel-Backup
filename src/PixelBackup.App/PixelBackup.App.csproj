@@ -48,6 +48,15 @@
     <!-- Avalonia.Diagnostics (die Entwicklerwerkzeuge) gibt es zu Avalonia 12
          nicht mehr als eigenes Paket; die Anwendung hat sie ohnehin nie
          aufgerufen (kein AttachDevTools). -->
+
+    <!-- Die D-Bus-Abhaengigkeit kommt ueber Avalonia.Desktop transitiv herein
+         (Avalonia.FreeDesktop zieht sie), und anders als in den reinen
+         Windows-Anwendungen daneben wird sie hier auch wirklich ausgefuehrt:
+         Pixel Backup laeuft unter Linux. Ausdruecklich auf die neueste Fassung
+         gehoben - deutlich ueber der fuer CVE-2026-39959 (HIGH) gepatchten
+         0.92.0 und ueber den 0.94.1, die Avalonia von sich aus mitbrachte.
+         Damit steht sie auf demselben Stand wie in den uebrigen Projekten. -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
   </ItemGroup>
 
   <ItemGroup>
