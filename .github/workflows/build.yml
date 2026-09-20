@@ -84,6 +84,11 @@ jobs:
           name: pixel-backup-${{ matrix.rid }}
           path: publish/${{ matrix.rid }}
           if-no-files-found: error
+          # Nur ein Testbau zum Ausprobieren - nach drei Tagen holt den
+          # niemand mehr. Das eingeschlossene Actions-Kontingent betraegt
+          # 0,5 GB, und eine eigenstaendige EXE wiegt rund 40 MiB; bei der
+          # Vorgabe von 90 Tagen laeuft der Speicher in Tagen voll.
+          retention-days: 3
 
       - name: Linux-Pakete ablegen
         if: matrix.os == 'ubuntu-latest'
@@ -92,3 +97,8 @@ jobs:
           name: pixel-backup-linux-pakete
           path: dist/
           if-no-files-found: error
+          # Nur ein Testbau zum Ausprobieren - nach drei Tagen holt den
+          # niemand mehr. Das eingeschlossene Actions-Kontingent betraegt
+          # 0,5 GB, und eine eigenstaendige EXE wiegt rund 40 MiB; bei der
+          # Vorgabe von 90 Tagen laeuft der Speicher in Tagen voll.
+          retention-days: 3
