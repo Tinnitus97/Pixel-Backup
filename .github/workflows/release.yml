@@ -26,10 +26,10 @@ jobs:
     name: Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: .NET einrichten
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -58,7 +58,7 @@ jobs:
           done
 
       - name: Ergebnis ablegen
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: windows-pakete
           path: dist/
@@ -69,10 +69,10 @@ jobs:
     name: Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: .NET einrichten
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -94,7 +94,7 @@ jobs:
         run: ./packaging/linux/package.sh --require-all
 
       - name: Ergebnis ablegen
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: linux-pakete
           path: dist/
@@ -106,10 +106,10 @@ jobs:
     needs: [ windows, linux ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Pakete einsammeln
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: eingesammelt
 
