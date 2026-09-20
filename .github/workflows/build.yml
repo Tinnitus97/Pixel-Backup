@@ -78,27 +78,29 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: ./packaging/linux/package.sh --require-all
 
+      # Nur vom Standardzweig wird etwas abgelegt.
+      #
+      # Der Grund ist das eingeschlossene Actions-Kontingent von 0,5 GB. Dieser
+      # Workflow laeuft bei jedem Push auf JEDEN Zweig, und ein vollstaendiger
+      # Durchlauf legte bisher rund 300 MiB ab - nach wenigen Zweigen war der
+      # Speicher voll, und zwar kontoweit: Zuerst scheiterte der Upload in
+      # einem ganz anderen Projekt.
+      #
+      # Gebaut und geprueft wird weiterhin auf jedem Zweig, samt Linux-Paketen
+      # und X11-Start. Es wandert nur nichts mehr in den Speicher, was ohnehin
+      # niemand herunterlaedt.
       - name: Ergebnis ablegen
+        if: github.ref_name == github.event.repository.default_branch
         uses: actions/upload-artifact@v7
         with:
           name: pixel-backup-${{ matrix.rid }}
           path: publish/${{ matrix.rid }}
           if-no-files-found: error
-          # Nur ein Testbau zum Ausprobieren - nach drei Tagen holt den
-          # niemand mehr. Das eingeschlossene Actions-Kontingent betraegt
-          # 0,5 GB, und eine eigenstaendige EXE wiegt rund 40 MiB; bei der
-          # Vorgabe von 90 Tagen laeuft der Speicher in Tagen voll.
           retention-days: 3
 
-      - name: Linux-Pakete ablegen
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v7
-        with:
-          name: pixel-backup-linux-pakete
-          path: dist/
-          if-no-files-found: error
-          # Nur ein Testbau zum Ausprobieren - nach drei Tagen holt den
-          # niemand mehr. Das eingeschlossene Actions-Kontingent betraegt
-          # 0,5 GB, und eine eigenstaendige EXE wiegt rund 40 MiB; bei der
-          # Vorgabe von 90 Tagen laeuft der Speicher in Tagen voll.
-          retention-days: 3
+      # Die fuenf Linux-Pakete werden NICHT mehr abgelegt - sie waren mit rund
+      # 165 MiB je Durchlauf der groesste Posten. Gebaut werden sie im Schritt
+      # darueber weiterhin, und zwar mit --require-all: Faellt eines der
+      # Formate aus, scheitert der Lauf genau wie vorher. Geprueft ist damit
+      # unveraendert alles; abzuholen gibt es sie bei der Veroeffentlichung,
+      # wo release.yml sie ohnehin neu baut und an das Release haengt.
