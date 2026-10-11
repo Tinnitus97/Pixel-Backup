@@ -387,11 +387,11 @@ Flatpak. Ein Aufruf erzeugt alle fünf:
 ```
 
 ```
-dist/pixel-backup_0.9.1_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   40 MB
-dist/pixel-backup-0.9.1-1.x86_64.rpm         Fedora, openSUSE, RHEL …          41 MB
-dist/PixelBackup-0.9.1-x86_64.AppImage       läuft ohne Installation           35 MB
-dist/pixel-backup-0.9.1.flatpak              Flatpak-Bündel
-dist/pixel-backup-0.9.1-linux-x64.tar.gz     portabel, jede Verteilung         41 MB
+dist/pixel-backup_0.9.2_amd64.deb            Debian, Ubuntu, Mint, Pop!_OS …   40 MB
+dist/pixel-backup-0.9.2-1.x86_64.rpm         Fedora, openSUSE, RHEL …          41 MB
+dist/PixelBackup-0.9.2-x86_64.AppImage       läuft ohne Installation           35 MB
+dist/pixel-backup-0.9.2.flatpak              Flatpak-Bündel
+dist/pixel-backup-0.9.2-linux-x64.tar.gz     portabel, jede Verteilung         41 MB
 ```
 
 Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur dieses Format
@@ -400,12 +400,12 @@ Fehlt ein Werkzeug (`rpmbuild`, `mksquashfs`, `flatpak-builder`), wird **nur die
 **Einspielen:**
 
 ```bash
-sudo apt install ./dist/pixel-backup_0.9.1_amd64.deb      # Debian-Familie
-sudo dnf install ./dist/pixel-backup-0.9.1-1.x86_64.rpm   # Fedora, RHEL
-chmod +x dist/PixelBackup-0.9.1-x86_64.AppImage && ./dist/PixelBackup-0.9.1-x86_64.AppImage
-flatpak install --user ./dist/pixel-backup-0.9.1.flatpak  # Flatpak
-tar xzf pixel-backup-0.9.1-linux-x64.tar.gz               # portabel
-./pixel-backup-0.9.1/install.sh                           # trägt es ins Startmenü ein
+sudo apt install ./dist/pixel-backup_0.9.2_amd64.deb      # Debian-Familie
+sudo dnf install ./dist/pixel-backup-0.9.2-1.x86_64.rpm   # Fedora, RHEL
+chmod +x dist/PixelBackup-0.9.2-x86_64.AppImage && ./dist/PixelBackup-0.9.2-x86_64.AppImage
+flatpak install --user ./dist/pixel-backup-0.9.2.flatpak  # Flatpak
+tar xzf pixel-backup-0.9.2-linux-x64.tar.gz               # portabel
+./pixel-backup-0.9.2/install.sh                           # trägt es ins Startmenü ein
 cd packaging/arch && makepkg -si                          # Arch, Manjaro
 ```
 
@@ -496,7 +496,7 @@ die Einbauart, die Dateigröße und das Datum:
 
 ```
 ⬆  Fassung 0.9.2 von Pixel Backup ist verfügbar          [Änderungen ansehen] [Jetzt aktualisieren] [✕]
-   installiert: 0.9.1 · portable Fassung · 40,2 MB · vom 2026-09-20
+   installiert: 0.9.2 · portable Fassung · 40,2 MB · vom 2026-09-20
 ```
 
 „Jetzt aktualisieren“ wechselt auf die Seite **Komponenten** und stellt dort dieselbe Rückfrage wie
@@ -527,12 +527,12 @@ https://github.com/Tinnitus97/Pixel-Backup/releases/latest/download/update.json
 ```json
 {
   "schema": 1,
-  "version": "0.9.1",
+  "version": "0.9.2",
   "released": "2026-09-13",
-  "notes": "https://github.com/Tinnitus97/Pixel-Backup/releases/tag/v0.9.1",
+  "notes": "https://github.com/Tinnitus97/Pixel-Backup/releases/tag/v0.9.2",
   "packages": [
-    { "kind": "windows-exe", "arch": "x64",   "url": "…/PixelBackup-0.9.1-win-x64.exe", "sha256": "…", "size": 95765428 },
-    { "kind": "deb",         "arch": "amd64", "url": "…/pixel-backup_0.9.1_amd64.deb",  "sha256": "…", "size": 33188892 }
+    { "kind": "windows-exe", "arch": "x64",   "url": "…/PixelBackup-0.9.2-win-x64.exe", "sha256": "…", "size": 95765428 },
+    { "kind": "deb",         "arch": "amd64", "url": "…/pixel-backup_0.9.2_amd64.deb",  "sha256": "…", "size": 33188892 }
   ]
 }
 ```
@@ -561,19 +561,19 @@ Zwei Abläufe liegen in `.github/workflows/`:
 | `release.yml` | bei einem Merkmal `v*` oder von Hand | baut **alle** Fassungen, hängt sie an eine Veröffentlichung und erzeugt `SHA256SUMS` und `update.json` |
 
 ```bash
-git tag v0.9.1 && git push origin v0.9.1
+git tag v0.9.2 && git push origin v0.9.2
 ```
 
 Danach entsteht eine Veröffentlichung mit:
 
 ```
-PixelBackup-0.9.1-win-x64.exe      Windows 10/11 (x64)
-PixelBackup-0.9.1-win-arm64.exe    Windows auf ARM
-pixel-backup_0.9.1_amd64.deb       Debian, Ubuntu, Mint, Pop!_OS
-pixel-backup-0.9.1-1.x86_64.rpm    Fedora, openSUSE, RHEL
-PixelBackup-0.9.1-x86_64.AppImage  ohne Installation
-pixel-backup-0.9.1.flatpak         Flatpak-Bündel
-pixel-backup-0.9.1-linux-x64.tar.gz  portabel
+PixelBackup-0.9.2-win-x64.exe      Windows 10/11 (x64)
+PixelBackup-0.9.2-win-arm64.exe    Windows auf ARM
+pixel-backup_0.9.2_amd64.deb       Debian, Ubuntu, Mint, Pop!_OS
+pixel-backup-0.9.2-1.x86_64.rpm    Fedora, openSUSE, RHEL
+PixelBackup-0.9.2-x86_64.AppImage  ohne Installation
+pixel-backup-0.9.2.flatpak         Flatpak-Bündel
+pixel-backup-0.9.2-linux-x64.tar.gz  portabel
 SHA256SUMS                         Prüfsummen aller Dateien
 update.json                        Grundlage des Versionschecks
 ```
@@ -581,7 +581,7 @@ update.json                        Grundlage des Versionschecks
 `update.json` lässt sich auch von Hand erzeugen – etwa zum Nachsehen, was die Anwendung liest:
 
 ```bash
-./packaging/make-update-manifest.sh --version 0.9.1 --tag v0.9.1 --dist dist
+./packaging/make-update-manifest.sh --version 0.9.2 --tag v0.9.2 --dist dist
 ```
 
 ## Einrichten unter Linux

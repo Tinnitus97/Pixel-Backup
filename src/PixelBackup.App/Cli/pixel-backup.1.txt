@@ -178,4 +178,4 @@ SIEHE AUCH
 FEHLER MELDEN
        <https://github.com/Tinnitus97/Pixel-Backup/issues>
 
-Pixel Backup 0.9.1                     2026-09-16                        PIXEL-BACKUP(1)
+Pixel Backup 0.9.2                     2026-10-11                        PIXEL-BACKUP(1)
