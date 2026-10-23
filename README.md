@@ -553,12 +553,13 @@ Eine eigene Adresse für `update.json` – etwa ein Firmenserver – lässt sich
 
 ## Veröffentlichungen bauen (GitHub Actions)
 
-Zwei Abläufe liegen in `.github/workflows/`:
+Drei Abläufe liegen in `.github/workflows/`:
 
 | Ablauf | Wann | Was |
 | --- | --- | --- |
 | `build.yml` | bei jedem Push | baut und testet unter Windows und Linux, prüft den Start unter X11, baut alle Linux-Pakete |
 | `release.yml` | bei einem Merkmal `v*` oder von Hand | baut **alle** Fassungen, hängt sie an eine Veröffentlichung und erzeugt `SHA256SUMS` und `update.json` |
+| `dotnet-version.yml` | bei jedem Push, dazu montags | schlägt fehl, wenn Projektdateien oder Workflows nicht auf der neuesten stabilen .NET-Version stehen |
 
 ```bash
 git tag v0.9.2 && git push origin v0.9.2
