@@ -56,7 +56,7 @@
          gehoben - deutlich ueber der fuer CVE-2026-39959 (HIGH) gepatchten
          0.92.0 und ueber den 0.94.1, die Avalonia von sich aus mitbrachte.
          Damit steht sie auf demselben Stand wie in den uebrigen Projekten. -->
-    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.2" />
   </ItemGroup>
 
   <ItemGroup>
