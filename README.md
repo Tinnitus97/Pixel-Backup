@@ -559,7 +559,11 @@ Drei Abläufe liegen in `.github/workflows/`:
 | --- | --- | --- |
 | `build.yml` | bei jedem Push | baut und testet unter Windows und Linux, prüft den Start unter X11, baut alle Linux-Pakete |
 | `release.yml` | bei einem Merkmal `v*` oder von Hand | baut **alle** Fassungen, hängt sie an eine Veröffentlichung und erzeugt `SHA256SUMS` und `update.json` |
-| `dotnet-version.yml` | bei jedem Push, dazu montags | schlägt fehl, wenn Projektdateien oder Workflows nicht auf der neuesten stabilen .NET-Version stehen |
+| `dotnet-version.yml` | bei jedem Push, dazu montags | schlägt fehl, wenn Projektdateien nicht auf der neuesten **LTS**-Version von .NET stehen oder ein Workflow .NET an `.github/actions/dotnet-lts` vorbei einrichtet |
+
+Alle Abläufe richten .NET über `.github/actions/dotnet-lts` ein. Die Aktion nimmt
+immer die neueste **LTS**-Version aus der Versionsliste von Microsoft (derzeit
+.NET 10), nie eine neuere STS-Version wie .NET 11.
 
 ```bash
 git tag v0.9.2 && git push origin v0.9.2
