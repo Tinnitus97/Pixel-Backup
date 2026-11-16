@@ -28,10 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: .NET einrichten
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
+      - name: .NET einrichten (neueste LTS-Version)
+        uses: ./.github/actions/dotnet-lts
 
       - name: Testen
         run: dotnet test -c Release
@@ -76,10 +74,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: .NET einrichten
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
+      - name: .NET einrichten (neueste LTS-Version)
+        uses: ./.github/actions/dotnet-lts
 
       - name: Paketwerkzeuge einrichten
         run: |
